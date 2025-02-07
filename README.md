@@ -4,6 +4,8 @@ An implemententation of (randomized) incremental weighted Delaunay triangulation
 
 You can create a two- or three-dimensional Delaunay triangulation, including weighted points, as follows.
 
+## 2D
+
 ```rust
 let vertices = vec![
     [0.0, 0.0],
@@ -21,6 +23,26 @@ let weights = vec![0.2, 0.3, 0.55, 0.5, 0.6, 0.4, 0.65, 0.7, 0.85, 0.35];
 
 let mut triangulation = Triangulation::new(None); // specify epsilon here
 let result = triangulation.insert_vertices(&vertices, Some(weights), true);  // last parameter toggles spatial sorting
+```
+
+## 3D
+```rust
+let vertices = vec![
+    [0.0, 0.0, 0.0],
+    [-0.5, 1.0, 0.5],
+    [0.0, 2.5, 2.5],
+    [2.0, 3.0, 5.0],
+    [4.0, 2.5, 6.5],
+    [5.0, 1.5, 6.5],
+    [4.5, 0.5, 5.0],
+    [2.5, -0.5, 2.0],
+    [1.5, 1.5, 3.0],
+    [3.0, 1.0, 4.0],
+];
+let weights = vec![0.2, 0.3, 0.55, 0.5, 0.6, 0.4, 0.65, 0.7, 0.85, 0.35];
+
+let mut tetrahedralization = Tetrahedralization::new(None); // specify epsilon here
+let result = tetrahedralization.insert_vertices(&vertices, Some(weights), true);  // last parameter toggles spatial sorting
 ```
 
 The eps parameter is used to perform an approximation technique, which leaves out certain vertices based on epsilon in the incremental insertion process.

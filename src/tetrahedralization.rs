@@ -5,7 +5,7 @@ use crate::{
     trids::node::VertexNode,
     utils::{
         point_order::sort_along_hilbert_curve_3d,
-        types::{Tetrahedron3, Triangle3, Vertex3},
+        types::{Tetrahedron3, Triangle3, Vertex3, VertexIdx},
     },
 };
 use anyhow::Result;
@@ -21,6 +21,30 @@ pub enum ExtendedTetrahedron {
     Triangle(Triangle3),
 }
 
+/// A weighted 3D Delaunay Tetrahedralization with eps-approximation.
+///
+/// ```
+/// use rita::Tetrahedralization;
+///
+/// let vertices = vec![
+///     [0.0, 0.0, -2.0],
+///     [-0.5, 1.0, 0.5],
+///     [0.0, 2.5, 2.5],
+///     [2.0, 3.0, 5.0],
+///     [4.0, 2.5, 9.5],
+///     [1.0, 1.5, 6.5],
+///     [4.5, 0.5, 5.0],
+///     [2.5, -0.5, 2.0],
+///     [1.5, 1.5, 3.0],
+///     [3.0, 1.0, 4.0],
+/// ];
+/// let weights = vec![0.2, 0.3, 0.55, 0.5, 0.6, 0.4, 0.65, 0.7, 0.85, 0.35];
+///
+/// let mut tetrahedralization = Tetrahedralization::new(None); // specify epsilon here
+/// let result = tetrahedralization.insert_vertices(&vertices, Some(weights), true);  // last parameter toggles spatial sorting
+/// println!("{:?}", result);
+/// assert_eq!(tetrahedralization.is_regular_p(false), 1.0);
+/// ```
 pub struct Tetrahedralization {
     epsilon: Option<f64>,
     tds: TetDataStructure,
@@ -31,9 +55,9 @@ pub struct Tetrahedralization {
     time_walking: u128,
     time_inserting: u128,
     /// Indices of vertices that are inserted, i.e. not skipped due to epsilon
-    used_vertices: Vec<usize>,
+    used_vertices: Vec<VertexIdx>,
     /// Indices of vertices that are ignored, i.e. skipped due to epsilon
-    ignored_vertices: Vec<usize>,
+    ignored_vertices: Vec<VertexIdx>,
     /// If the vertices are weighted
     weighted: bool,
 }

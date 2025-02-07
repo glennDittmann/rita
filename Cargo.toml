@@ -1,9 +1,15 @@
 [package]
 name = "rita"
 description = "Randomized Incremental Triangulation Algorithms"
-keywords = ["computer-graphics", "triangulations", "math"]
+keywords = [
+    "computer-graphics",
+    "triangulations",
+    "delaunay",
+    "geometry",
+    "math",
+]
 version = "0.1.2"
-repository = "https://github.com/glennDittmann/triangulations/tree/main/cg-math"
+repository = "https://github.com/glennDittmann/rita"
 authors = ["Glenn Dittmann <glenn.dittmann@posteo.de>"]
 edition = "2021"
 rust-version = "1.72.1"
