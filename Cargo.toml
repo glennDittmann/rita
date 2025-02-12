@@ -8,7 +8,7 @@ keywords = [
     "geometry",
     "math",
 ]
-version = "0.1.3"
+version = "0.1.4"
 repository = "https://github.com/glennDittmann/rita"
 authors = ["Glenn Dittmann <glenn.dittmann@posteo.de>"]
 edition = "2021"
