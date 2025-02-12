@@ -1,6 +1,6 @@
-use crate::utils::types::HedgeIteratorIdx;
+use crate::{utils::types::HedgeIteratorIdx, VertexNode};
 
-use super::{hedge_iterator::HedgeIterator, node::VertexNode, tri_iterator::TriIterator};
+use super::{hedge_iterator::HedgeIterator, tri_iterator::TriIterator};
 use anyhow::{Ok, Result};
 use geogram_predicates as gp;
 

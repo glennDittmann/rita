@@ -2,9 +2,9 @@ use core::fmt;
 use log::error;
 use std::cmp::Ordering;
 
-use crate::utils::types::HedgeIteratorIdx;
+use crate::{utils::types::HedgeIteratorIdx, VertexNode};
 
-use super::{node::VertexNode, tri_data_structure::TriDataStructure, tri_iterator::TriIterator};
+use super::{tri_data_structure::TriDataStructure, tri_iterator::TriIterator};
 
 /// An iterator over the half-edges of a triangulation data structure.
 #[derive(Copy, Clone)]

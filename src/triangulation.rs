@@ -6,7 +6,7 @@ use std::cmp;
 
 use crate::{
     trids::{
-        hedge_iterator::HedgeIterator, node::VertexNode, tri_data_structure::TriDataStructure,
+        hedge_iterator::HedgeIterator, tri_data_structure::TriDataStructure,
         tri_iterator::TriIterator,
     },
     utils::{
@@ -14,6 +14,7 @@ use crate::{
         point_order::sort_along_hilbert_curve_2d,
         types::{Edge2, Triangle2, Vertex2, VertexIdx},
     },
+    VertexNode,
 };
 use anyhow::{Ok, Result};
 use geogram_predicates as gp;

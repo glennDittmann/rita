@@ -1,4 +1,4 @@
-use crate::trids::node::VertexNode;
+use crate::VertexNode;
 
 use super::{
     hedge_iterator::HedgeIterator,

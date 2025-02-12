@@ -2,7 +2,7 @@ use super::{
     half_tri_iterator::HalfTriIterator,
     tet_data_structure::{TetDataStructure, NEIGHBOR_HALFEDGE, TRIANGLE_SUBINDICES},
 };
-use crate::trids::node::VertexNode;
+use crate::VertexNode;
 
 pub struct HedgeIterator<'a> {
     pub tds: &'a TetDataStructure,

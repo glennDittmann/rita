@@ -2,11 +2,11 @@ use std::cmp;
 
 use crate::{
     tetds::{half_tri_iterator::HalfTriIterator, tet_data_structure::TetDataStructure},
-    trids::node::VertexNode,
     utils::{
         point_order::sort_along_hilbert_curve_3d,
         types::{Tetrahedron3, Triangle3, Vertex3, VertexIdx},
     },
+    VertexNode,
 };
 use anyhow::Result;
 use geogram_predicates as gp;

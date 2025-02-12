@@ -1,10 +1,8 @@
 use core::fmt;
 
-use crate::utils::types::TriIteratorIdx;
+use crate::{utils::types::TriIteratorIdx, VertexNode};
 
-use super::{
-    hedge_iterator::HedgeIterator, node::VertexNode, tri_data_structure::TriDataStructure,
-};
+use super::{hedge_iterator::HedgeIterator, tri_data_structure::TriDataStructure};
 
 pub struct TriIterator<'a> {
     pub tds: &'a TriDataStructure,

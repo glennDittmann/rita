@@ -1,4 +1,4 @@
-use crate::trids::node::VertexNode;
+use crate::VertexNode;
 use anyhow::{Ok, Result};
 
 use super::{

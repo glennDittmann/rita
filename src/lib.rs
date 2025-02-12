@@ -2,9 +2,11 @@
 //!
 //! An implementation of 2D and 3D weighted delaunay triangulation via incremental algorithms.
 
+pub use node::VertexNode;
 pub use tetrahedralization::Tetrahedralization;
 pub use triangulation::Triangulation;
 
+pub mod node;
 mod tetds;
 pub mod tetrahedralization;
 pub mod triangulation;

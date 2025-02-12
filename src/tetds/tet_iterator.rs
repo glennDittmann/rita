@@ -1,4 +1,4 @@
-use crate::{trids::node::VertexNode, utils::types::TetIteratorIdx};
+use crate::{utils::types::TetIteratorIdx, VertexNode};
 
 use super::{half_tri_iterator::HalfTriIterator, tet_data_structure::TetDataStructure};
 
