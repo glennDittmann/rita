@@ -8,7 +8,7 @@ pub struct TetIterator<'a> {
 }
 
 impl<'a> TetIterator<'a> {
-    pub fn half_triangles(&self) -> [HalfTriIterator<'a>; 4] {
+    pub const fn half_triangles(&self) -> [HalfTriIterator<'a>; 4] {
         let idx_first = self.idx() << 2;
 
         [
@@ -31,7 +31,7 @@ impl<'a> TetIterator<'a> {
         ]
     }
 
-    pub fn idx(&self) -> TetIteratorIdx {
+    pub const fn idx(&self) -> TetIteratorIdx {
         self.tet_idx
     }
 

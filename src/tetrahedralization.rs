@@ -69,7 +69,7 @@ impl Default for Tetrahedralization {
 }
 
 impl Tetrahedralization {
-    pub fn new(epsilon: Option<f64>) -> Self {
+    pub const fn new(epsilon: Option<f64>) -> Self {
         Self {
             epsilon,
             tds: TetDataStructure::new(),
@@ -97,23 +97,23 @@ impl Tetrahedralization {
         self.tds().num_casual_tets()
     }
 
-    pub fn num_ignored_vertices(&self) -> usize {
+    pub const fn num_ignored_vertices(&self) -> usize {
         self.ignored_vertices.len()
     }
 
-    pub fn num_tets(&self) -> usize {
+    pub const fn num_tets(&self) -> usize {
         self.tds.num_tets()
     }
 
-    pub fn num_used_vertices(&self) -> usize {
+    pub const fn num_used_vertices(&self) -> usize {
         self.used_vertices.len()
     }
 
-    pub fn tds(&self) -> &TetDataStructure {
+    pub const fn tds(&self) -> &TetDataStructure {
         &self.tds
     }
 
-    pub fn vertices(&self) -> &Vec<Vertex3> {
+    pub const fn vertices(&self) -> &Vec<Vertex3> {
         &self.vertices
     }
 
@@ -584,8 +584,7 @@ impl Tetrahedralization {
                     .tds()
                     .get_tet(tet_idx)?
                     .nodes()
-                    .iter()
-                    .any(|&node| node == VertexNode::Casual(v_idx))
+                    .contains(&VertexNode::Casual(v_idx))
                 {
                     continue;
                 }
@@ -624,8 +623,7 @@ impl Tetrahedralization {
                             .get_tet(tet_idx)
                             .unwrap()
                             .nodes()
-                            .iter()
-                            .any(|&node| node == VertexNode::Casual(v_idx))
+                            .contains(&VertexNode::Casual(v_idx))
                         {
                             return false;
                         }
@@ -676,8 +674,7 @@ impl Tetrahedralization {
                 .tds()
                 .get_tet(tet_idx)?
                 .nodes()
-                .iter()
-                .any(|&node| node == VertexNode::Deleted)
+                .contains(&VertexNode::Deleted)
             {
                 continue;
             }
@@ -739,7 +736,7 @@ impl Tetrahedralization {
         }
     }
 
-    pub fn used_vertices(&self) -> &Vec<usize> {
+    pub const fn used_vertices(&self) -> &Vec<usize> {
         &self.used_vertices
     }
 }

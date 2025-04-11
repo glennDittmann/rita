@@ -85,7 +85,7 @@ impl Default for Triangulation {
 }
 
 impl Triangulation {
-    pub fn new(epsilon: Option<f64>) -> Self {
+    pub const fn new(epsilon: Option<f64>) -> Self {
         Self {
             tds: TriDataStructure::new(),
             vertices: Vec::new(),
@@ -493,8 +493,7 @@ impl Triangulation {
                 .tds()
                 .get_tri(tri_idx)?
                 .nodes()
-                .iter()
-                .any(|&node| node == VertexNode::Deleted)
+                .contains(&VertexNode::Deleted)
             {
                 continue;
             }
@@ -512,8 +511,7 @@ impl Triangulation {
                     .tds()
                     .get_tri(tri_idx)?
                     .nodes()
-                    .iter()
-                    .any(|&node| node == VertexNode::Casual(v_idx))
+                    .contains(&VertexNode::Casual(v_idx))
                 {
                     continue;
                 }
@@ -533,8 +531,7 @@ impl Triangulation {
                     .tds()
                     .get_tri(tri_idx)?
                     .nodes()
-                    .iter()
-                    .any(|&node| node == VertexNode::Casual(v_idx))
+                    .contains(&VertexNode::Casual(v_idx))
                 {
                     continue;
                 }
@@ -569,8 +566,7 @@ impl Triangulation {
                     .get_tri(tri_idx)
                     .unwrap()
                     .nodes()
-                    .iter()
-                    .any(|&node| node == VertexNode::Deleted)
+                    .contains(&VertexNode::Deleted)
                 {
                     0.0
                 } else if self.is_tri_flat(tri_idx).unwrap() {
@@ -584,8 +580,7 @@ impl Triangulation {
                             .get_tri(tri_idx)
                             .unwrap()
                             .nodes()
-                            .iter()
-                            .any(|&node| node == VertexNode::Casual(v_idx))
+                            .contains(&VertexNode::Casual(v_idx))
                         {
                             return false;
                         }
@@ -605,8 +600,7 @@ impl Triangulation {
                             .get_tri(tri_idx)
                             .unwrap()
                             .nodes()
-                            .iter()
-                            .any(|&node| node == VertexNode::Casual(v_idx))
+                            .contains(&VertexNode::Casual(v_idx))
                         {
                             return false;
                         }
@@ -658,8 +652,7 @@ impl Triangulation {
                 .tds()
                 .get_tri(tri_idx)?
                 .nodes()
-                .iter()
-                .any(|&node| node == VertexNode::Deleted)
+                .contains(&VertexNode::Deleted)
             {
                 continue;
             }
@@ -718,7 +711,7 @@ impl Triangulation {
         }
     }
 
-    pub fn num_ignored_vertices(&self) -> usize {
+    pub const fn num_ignored_vertices(&self) -> usize {
         self.ignored_vertices.len()
     }
 

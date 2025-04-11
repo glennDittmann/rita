@@ -72,7 +72,7 @@ impl Default for TetDataStructure {
 
 impl TetDataStructure {
     /// Simplicial structure initialisation
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             tet_nodes: Vec::new(),
             half_tri_opposite: Vec::new(),
@@ -85,7 +85,7 @@ impl TetDataStructure {
         }
     }
 
-    fn hedge(&self, ind_halftriangle: usize, ind_halfedge: usize) -> HedgeIterator<'_> {
+    const fn hedge(&self, ind_halftriangle: usize, ind_halfedge: usize) -> HedgeIterator<'_> {
         // TODO: remove this, this is just HedgeIterator::new(self, ind_halftriangle, ind_halfedge)
         HedgeIterator {
             tds: self,
@@ -94,7 +94,7 @@ impl TetDataStructure {
         }
     }
 
-    fn half_triangle(&self, ind_halftriangle: usize) -> HalfTriIterator {
+    const fn half_triangle(&self, ind_halftriangle: usize) -> HalfTriIterator {
         // TODO: remove this, this is just HalfTriIterator::new(self, ind_halftriangle, ind_halfedge)
         HalfTriIterator {
             tds: self,
@@ -132,7 +132,7 @@ impl TetDataStructure {
         num_casual_tets
     }
 
-    fn tet(&self, ind_tetrahedron: usize) -> TetIterator {
+    const fn tet(&self, ind_tetrahedron: usize) -> TetIterator {
         // TODO: remove this, this is just TetIterator::new(self, ind_halftriangle, ind_halfedge)
         TetIterator {
             tds: self,
@@ -150,7 +150,7 @@ impl TetDataStructure {
     }
 
     /// Gets number of triangles
-    pub fn num_tets(&self) -> usize {
+    pub const fn num_tets(&self) -> usize {
         self.num_tets
     }
 

@@ -15,7 +15,7 @@ pub enum VertexNode {
 
 impl VertexNode {
     /// Get the index of the node.
-    pub fn idx(&self) -> Option<VertexIdx> {
+    pub const fn idx(&self) -> Option<VertexIdx> {
         match self {
             VertexNode::Casual(idx) => Some(*idx),
             _ => None,
@@ -23,12 +23,12 @@ impl VertexNode {
     }
 
     /// Check if the node is conceptual.
-    pub fn is_conceptual(&self) -> bool {
+    pub const fn is_conceptual(&self) -> bool {
         matches!(self, VertexNode::Conceptual)
     }
 
     /// Check if the node is deleted.
-    pub fn is_deleted(&self) -> bool {
+    pub const fn is_deleted(&self) -> bool {
         matches!(self, VertexNode::Deleted)
     }
 }
