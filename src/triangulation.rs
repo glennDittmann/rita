@@ -349,12 +349,12 @@ impl Triangulation {
         let now = std::time::Instant::now();
         let mut hedges_to_verify = Vec::new();
         let [hedge0, hedge1, hedge2] = self.tds().get_tri(containing_tri_idx)?.hedges();
-        hedges_to_verify.push(hedge0.twin().idx());
-        hedges_to_verify.push(hedge1.twin().idx());
-        hedges_to_verify.push(hedge2.twin().idx());
+        hedges_to_verify.push(hedge0.twin().idx);
+        hedges_to_verify.push(hedge1.twin().idx);
+        hedges_to_verify.push(hedge2.twin().idx);
 
         let [t0, _, _] = self.tds.flip_1_to_3(containing_tri_idx, v_idx)?;
-        self.last_inserted_triangle = Some(t0.idx());
+        self.last_inserted_triangle = Some(t0.idx);
         self.time_inserting += now.elapsed().as_micros();
 
         // Perform flips and measure time
@@ -371,18 +371,18 @@ impl Triangulation {
                         // Denote the inserted vertex v, the hedge to test ab and the opposing point o, that shares ab with v
                         // The flip makes vab and abo become vao and vbo respectively
                         // Now the hedges to test are the ones not connected to v in any way, i.e. ao and bo
-                        hedges_to_verify.push(hedge.prev().twin().idx());
-                        hedges_to_verify.push(hedge.next().twin().idx());
+                        hedges_to_verify.push(hedge.prev().twin().idx);
+                        hedges_to_verify.push(hedge.next().twin().idx);
 
                         let [t0, _] = self.tds_mut().flip_2_to_2(hedge_idx)?;
-                        self.last_inserted_triangle = Some(t0.idx());
+                        self.last_inserted_triangle = Some(t0.idx);
                     }
                     Flip::ThreeToOne((third_tri_idx, relfex_node_idx)) => {
                         let hedge = self.tds().get_hedge(hedge_idx)?;
 
                         // get the two incident triangles to the hedge, the third tri idx is in the flip
-                        let tri_idx_abd = hedge.tri().idx();
-                        let tri_idx_bcd = hedge.twin().tri().idx();
+                        let tri_idx_abd = hedge.tri().idx;
+                        let tri_idx_bcd = hedge.twin().tri().idx;
 
                         let vertices_clone = self.vertices.clone();
                         let t0 = self.tds_mut().flip_3_to_1(
@@ -390,16 +390,16 @@ impl Triangulation {
                             relfex_node_idx,
                             &vertices_clone, //TODO avoid cloning all vertices
                         )?;
-                        self.last_inserted_triangle = Some(t0.idx());
+                        self.last_inserted_triangle = Some(t0.idx);
 
                         // push the new hedges on the stack, these are the three edges of the newly created triangle
                         // since in the flip 3 to 1, we overwrite the data structure, such that the new triangle now lives at tri_idx_abd
 
                         let [hedge0, hedge1, hedge2] = self.tds().get_tri(tri_idx_abd)?.hedges();
 
-                        hedges_to_verify.push(hedge0.twin().idx());
-                        hedges_to_verify.push(hedge1.twin().idx());
-                        hedges_to_verify.push(hedge2.twin().idx());
+                        hedges_to_verify.push(hedge0.twin().idx);
+                        hedges_to_verify.push(hedge1.twin().idx);
+                        hedges_to_verify.push(hedge2.twin().idx);
                     }
                     _ => {
                         log::error!("Unexpected flip type!");
@@ -723,7 +723,7 @@ impl Triangulation {
     }
 
     /// The number of all `tris` in the triangulation, `casual` and `conceptual`.
-    pub fn num_tris(&self) -> usize {
+    pub const fn num_tris(&self) -> usize {
         self.tds().num_tris()
     }
 
@@ -733,15 +733,15 @@ impl Triangulation {
     }
 
     /// The number of total tris, i.e. `casual`, `conceptual` and `deleted` tris.
-    pub fn num_all_tris(&self) -> usize {
+    pub const fn num_all_tris(&self) -> usize {
         self.tds().num_tris() + self.tds().num_deleted_tris
     }
 
-    pub fn num_redundant_vertices(&self) -> usize {
+    pub const fn num_redundant_vertices(&self) -> usize {
         self.redundant_vertices.len()
     }
 
-    pub fn num_used_vertices(&self) -> usize {
+    pub const fn num_used_vertices(&self) -> usize {
         self.used_vertices.len()
     }
 
@@ -753,11 +753,11 @@ impl Triangulation {
             return Ok(None);
         }
 
-        let tri_idx_abd = hedge.tri().idx();
+        let tri_idx_abd = hedge.tri().idx;
         let node_a = hedge.prev().starting_node();
         let node_b = hedge.starting_node();
 
-        let tri_idx_bcd = hedge.twin().tri().idx();
+        let tri_idx_bcd = hedge.twin().tri().idx;
         let node_c = hedge.twin().prev().starting_node();
         let node_d = hedge.twin().starting_node();
 
@@ -860,27 +860,27 @@ impl Triangulation {
     }
 
     /// Get the triangulation data structure, as reference.
-    pub fn tds(&self) -> &TriDataStructure {
+    pub const fn tds(&self) -> &TriDataStructure {
         &self.tds
     }
 
     /// Get the triangulation data structure, as mutable reference.
-    pub fn tds_mut(&mut self) -> &mut TriDataStructure {
+    pub const fn tds_mut(&mut self) -> &mut TriDataStructure {
         &mut self.tds
     }
 
     /// Get the used vertices.
-    pub fn used_vertices(&self) -> &Vec<usize> {
+    pub const fn used_vertices(&self) -> &Vec<usize> {
         &self.used_vertices
     }
 
     /// Get the vertices.
-    pub fn vertices(&self) -> &Vec<[f64; 2]> {
+    pub const fn vertices(&self) -> &Vec<[f64; 2]> {
         &self.vertices
     }
 
     /// Get the weights.
-    pub fn weights(&self) -> &Vec<f64> {
+    pub const fn weights(&self) -> &Vec<f64> {
         &self.weights
     }
 
@@ -899,7 +899,7 @@ impl Triangulation {
             // choose one of the two (three) hedges of the triangle
             if let Some(hedge) = self.choose_hedge(&v_hedges, &v) {
                 let hedge_twin = hedge.twin();
-                tri_idx = hedge_twin.tri().idx(); // the triangle in question is the one incident to the twin hedge
+                tri_idx = hedge_twin.tri().idx; // the triangle in question is the one incident to the twin hedge
                 v_hedges.clear(); // delete the old hedges, to only look at hedges for the current tri
 
                 assert_eq!(
@@ -921,9 +921,9 @@ impl Triangulation {
 
                     let o = self.vertices[hedge_twin.prev().starting_node().idx().unwrap()];
                     let a = self.vertices[hedge_twin.prev().end_node().idx().unwrap()];
-                    let a_tri_idx = hedge_twin.prev().twin().tri().idx();
+                    let a_tri_idx = hedge_twin.prev().twin().tri().idx;
                     let b = self.vertices[hedge_twin.next().starting_node().idx().unwrap()];
-                    let b_tri_idx = hedge_twin.next().twin().tri().idx();
+                    let b_tri_idx = hedge_twin.next().twin().tri().idx;
 
                     // take the point in the middle of hedge and check if v is on the same side than this point
                     let a_help = self.vertices[hedge.starting_node().idx().unwrap()];
@@ -936,7 +936,7 @@ impl Triangulation {
                     let side_v_b = gp::orient_2d(&o, &b, &v);
 
                     if side_p_help_a == side_v_a && side_p_help_b == side_v_b {
-                        return Ok(hedge.twin().tri().idx());
+                        return Ok(hedge.twin().tri().idx);
                     }
 
                     let o_vec = nalgebra::Vector2::new(o[0], o[1]);
@@ -1053,7 +1053,7 @@ impl Triangulation {
 
             match idxs == tri_idxs {
                 // if the possible third tri is the tri abc it fills the reflex wedge and we can flip
-                true => Some(Flip::ThreeToOne((possible_third_tri.idx(), c))),
+                true => Some(Flip::ThreeToOne((possible_third_tri.idx, c))),
                 false => None,
             }
         } else if d_reflex {
@@ -1077,7 +1077,7 @@ impl Triangulation {
 
             match idxs == tri_idxs {
                 // if the possible third tri is the tri abc it fills the reflex wedge and we can flip
-                true => return Some(Flip::ThreeToOne((possible_third_tri.idx(), d))),
+                true => return Some(Flip::ThreeToOne((possible_third_tri.idx, d))),
                 false => return None,
             }
         } else {

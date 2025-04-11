@@ -6,22 +6,18 @@ use super::{hedge_iterator::HedgeIterator, tri_data_structure::TriDataStructure}
 
 pub struct TriIterator<'a> {
     pub tds: &'a TriDataStructure,
+    /// Index of this triangle.
     pub idx: usize,
 }
 
 impl<'a> TriIterator<'a> {
-    pub fn new(tds: &'a TriDataStructure, idx: TriIteratorIdx) -> Self {
+    pub const fn new(tds: &'a TriDataStructure, idx: TriIteratorIdx) -> Self {
         Self { tds, idx }
-    }
-
-    /// Returns the index of this.
-    pub fn idx(&self) -> TriIteratorIdx {
-        self.idx
     }
 
     /// Get the hedges of this triangle.
     // s. self.nodes() for a small explanation of the index calculation
-    pub fn hedges(&self) -> [HedgeIterator<'a>; 3] {
+    pub const fn hedges(&self) -> [HedgeIterator<'a>; 3] {
         [
             HedgeIterator::new(self.tds, self.idx * 3),
             HedgeIterator::new(self.tds, self.idx * 3 + 1),
@@ -60,9 +56,9 @@ impl<'a> TriIterator<'a> {
     // the indices of the nodes can be retrieved by multiplying the triangle index by 3
     pub fn nodes(&self) -> [VertexNode; 3] {
         [
-            self.tds.hedge_starting_nodes[self.idx() * 3],
-            self.tds.hedge_starting_nodes[self.idx() * 3 + 1],
-            self.tds.hedge_starting_nodes[self.idx() * 3 + 2],
+            self.tds.hedge_starting_nodes[self.idx * 3],
+            self.tds.hedge_starting_nodes[self.idx * 3 + 1],
+            self.tds.hedge_starting_nodes[self.idx * 3 + 2],
         ]
     }
 }
@@ -72,7 +68,7 @@ impl fmt::Display for TriIterator<'_> {
         write!(
             f,
             "Triangle {}: {} -> {} -> {}",
-            self.idx(),
+            self.idx,
             self.nodes()[0],
             self.nodes()[1],
             self.nodes()[2]

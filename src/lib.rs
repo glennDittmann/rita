@@ -17,12 +17,12 @@ mod utils;
 mod test_utils {
     use std::ops::RangeInclusive;
 
-    use rand::{distributions::Uniform, prelude::Distribution};
+    use rand::{distr::Uniform, prelude::Distribution};
     use rand_distr::Normal;
     pub fn sample_vertices_2d(n: usize, range: Option<RangeInclusive<f64>>) -> Vec<[f64; 2]> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let range = range.unwrap_or(-0.5..=0.5);
-        let uniform = Uniform::from(range);
+        let uniform = Uniform::try_from(range).expect("Expected a valid range");
 
         let mut vertices: Vec<[f64; 2]> = Vec::with_capacity(n);
         for _ in 0..n {
@@ -35,9 +35,9 @@ mod test_utils {
     }
 
     pub fn sample_vertices_3d(n: usize, range: Option<RangeInclusive<f64>>) -> Vec<[f64; 3]> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let range = range.unwrap_or(-0.5..=0.5);
-        let uniform = Uniform::from(range);
+        let uniform = Uniform::try_from(range).expect("Expected a valid range");
 
         let mut vertices: Vec<[f64; 3]> = Vec::with_capacity(n);
         for _ in 0..n {
@@ -52,7 +52,7 @@ mod test_utils {
     }
 
     pub fn sample_weights(n: usize, params: Option<(f64, f64)>) -> Vec<f64> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let (mean, std_dev) = params.unwrap_or((0.0, 0.005));
         let normal = Normal::new(mean, std_dev).unwrap();
 

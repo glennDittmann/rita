@@ -9,18 +9,16 @@ const INACTIVE: usize = usize::MAX;
 /// A 2D triangulation data structure.
 ///
 /// The edges are stored in a doubly-connected edge list (DCEL) manner.
-//
-// ```
-// i   --> hedge0 \
-// |        |       \
-// v        v        |
-// i+1 --> hedge1 ---|-->  triangle
-// |        |        |
-// v        v       /
-// i+2 --> hedge2 /
-//
-//
-// ```
+///
+/// ```ignore
+/// i   --> hedge0 \
+/// |        |       \
+/// v        v        |
+/// i+1 --> hedge1 ---|-->  triangle
+/// |        |        |
+/// v        v       /
+/// i+2 --> hedge2 /
+/// ```
 //
 // such that `hedge2 = next(he1)`
 //
@@ -31,7 +29,8 @@ pub struct TriDataStructure {
     pub hedge_starting_nodes: Vec<VertexNode>, // first node is stored, last can be obtained via %3
     pub hedge_twins: Vec<HedgeIteratorIdx>,
     pub num_tris: usize,
-    pub num_deleted_tris: usize, // we also need to track the number of delted to index into the existing one corecctly (otherwise we would have to shift all indices, which is tedious)
+    /// The number of deleted triangles.
+    pub num_deleted_tris: usize, // we also need to track the number of deleted to index into the existing one correctly (otherwise we would have to shift all indices, which is tedious)
 }
 
 impl Default for TriDataStructure {
@@ -41,7 +40,7 @@ impl Default for TriDataStructure {
 }
 
 impl TriDataStructure {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             hedge_starting_nodes: Vec::new(),
             hedge_twins: Vec::new(),
@@ -235,13 +234,13 @@ impl TriDataStructure {
         // we will find these edges (compare with the reflex node idx) and also take the edges respective twin hedge idxs
         // with that information we can update the first (WLOG) of the three triangles to become the new triangle
         let tri0 = self.get_tri(idxs_to_flip[0]).unwrap();
-        let tri0_idx = tri0.idx();
+        let tri0_idx = tri0.idx;
         let hedges0 = tri0.hedges();
 
         // 0. Get the indices where the new triangle will be stored (these are the idxs of the first triangle to be removed from the trgltn)
-        let h_idx0 = hedges0[0].idx();
-        let h_idx1 = hedges0[1].idx();
-        let h_idx2 = hedges0[2].idx();
+        let h_idx0 = hedges0[0].idx;
+        let h_idx1 = hedges0[1].idx;
+        let h_idx2 = hedges0[2].idx;
 
         // 1. Get the three new edges and their twins from the three triangles to delete (i.e. find 3 in 9 edges)
         let mut starting_node0 = VertexNode::Deleted;
@@ -252,7 +251,7 @@ impl TriDataStructure {
                 && h.end_node() != VertexNode::Casual(reflex_node_idx)
             {
                 starting_node0 = h.starting_node();
-                twin_idx0 = h.twin().idx();
+                twin_idx0 = h.twin().idx;
             }
         }
 
@@ -266,7 +265,7 @@ impl TriDataStructure {
                 && h.end_node() != VertexNode::Casual(reflex_node_idx)
             {
                 starting_node1 = h.starting_node();
-                twin_idx1 = h.twin().idx();
+                twin_idx1 = h.twin().idx;
             }
         }
 
@@ -280,7 +279,7 @@ impl TriDataStructure {
                 && h.end_node() != VertexNode::Casual(reflex_node_idx)
             {
                 starting_node2 = h.starting_node();
-                twin_idx2 = h.twin().idx();
+                twin_idx2 = h.twin().idx;
             }
         }
 
@@ -331,9 +330,9 @@ impl TriDataStructure {
     /// Easier for now, than to re-arrange the indices in the array.
     fn set_tri_inacive(&mut self, triangle_idx: usize) {
         let hedges = self.get_tri(triangle_idx).unwrap().hedges();
-        let idx_del0 = hedges[0].idx();
-        let idx_del1 = hedges[1].idx();
-        let idx_del2 = hedges[2].idx();
+        let idx_del0 = hedges[0].idx;
+        let idx_del1 = hedges[1].idx;
+        let idx_del2 = hedges[2].idx;
 
         self.hedge_starting_nodes[idx_del0] = VertexNode::Deleted;
         self.hedge_starting_nodes[idx_del1] = VertexNode::Deleted;
@@ -364,14 +363,14 @@ impl TriDataStructure {
     }
 
     /// Get the number of triangles in the triangulation.
-    pub fn num_tris(&self) -> usize {
+    pub const fn num_tris(&self) -> usize {
         self.num_tris
     }
 
     /// Get the number of triangles in the triangulation, without the ones connected to the dummy point.
     pub fn num_casual_tris(&self) -> usize {
         let mut num_casual_tris = 0;
-        for i in 0..self.num_tris() + self.num_deleted_tris() {
+        for i in 0..self.num_tris() + self.num_deleted_tris {
             let tri = self.get_tri(i).unwrap();
             let [n0, n1, n2] = tri.nodes();
 
@@ -385,11 +384,6 @@ impl TriDataStructure {
             }
         }
         num_casual_tris
-    }
-
-    /// Get the number of deleted triangles in the triangulation.
-    pub fn num_deleted_tris(&self) -> usize {
-        self.num_deleted_tris
     }
 
     /// Check if the data structure is sound, i.e. hedges point to correct next and previous nodes.
