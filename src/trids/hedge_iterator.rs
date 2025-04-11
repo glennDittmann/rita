@@ -38,7 +38,7 @@ impl<'a> HedgeIterator<'a> {
 
         let mut check = |condition: bool, error_msg: &str| {
             if !condition {
-                error!("{}: {}", self, error_msg);
+                error!("{self}: {error_msg}");
                 sound = false;
             }
         };

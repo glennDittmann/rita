@@ -246,7 +246,7 @@ impl TriDataStructure {
         let mut starting_node0 = VertexNode::Deleted;
         let mut twin_idx0 = INACTIVE;
         // O(3) since each triangle has 3 edges, this loop will make three iterations
-        for h in hedges0.iter() {
+        for h in &hedges0 {
             if h.starting_node() != VertexNode::Casual(reflex_node_idx)
                 && h.end_node() != VertexNode::Casual(reflex_node_idx)
             {
@@ -260,7 +260,7 @@ impl TriDataStructure {
         let mut starting_node1 = VertexNode::Deleted;
         let mut twin_idx1 = INACTIVE;
         // O(3) since each triangle has 3 edges, this loop will make three iterations
-        for h in hedges1.iter() {
+        for h in hedges1 {
             if h.starting_node() != VertexNode::Casual(reflex_node_idx)
                 && h.end_node() != VertexNode::Casual(reflex_node_idx)
             {
@@ -274,7 +274,7 @@ impl TriDataStructure {
         let mut starting_node2 = VertexNode::Deleted;
         let mut twin_idx2 = INACTIVE;
         // O(3) since each triangle has 3 edges, this loop will make three iterations
-        for h in hedges2.iter() {
+        for h in hedges2 {
             if h.starting_node() != VertexNode::Casual(reflex_node_idx)
                 && h.end_node() != VertexNode::Casual(reflex_node_idx)
             {
@@ -313,8 +313,8 @@ impl TriDataStructure {
         self.hedge_twins[twin_idx2] = h_idx2;
 
         // 3. Set the other two triangles to deleted and their twins to inactive
-        self.set_tri_inacive(idxs_to_flip[1]);
-        self.set_tri_inacive(idxs_to_flip[2]);
+        self.set_tri_inactive(idxs_to_flip[1]);
+        self.set_tri_inactive(idxs_to_flip[2]);
 
         // 4. Update number of triangles and deleted triangles
         self.num_tris -= 2;
@@ -328,7 +328,7 @@ impl TriDataStructure {
     /// Called twice by the 3->1 flip, once for each triangle that is set to inactive.
     ///
     /// Easier for now, than to re-arrange the indices in the array.
-    fn set_tri_inacive(&mut self, triangle_idx: usize) {
+    fn set_tri_inactive(&mut self, triangle_idx: usize) {
         let hedges = self.get_tri(triangle_idx).unwrap().hedges();
         let idx_del0 = hedges[0].idx;
         let idx_del1 = hedges[1].idx;

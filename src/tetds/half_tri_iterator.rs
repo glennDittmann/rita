@@ -55,7 +55,7 @@ impl<'a> HalfTriIterator<'a> {
 
     /// A triangle is considered conceptual if one of its nodes are conceptual
     pub fn is_conceptual(&self) -> bool {
-        self.nodes().iter().any(|n| n.is_conceptual())
+        self.nodes().iter().any(VertexNode::is_conceptual)
     }
 
     pub fn nodes(&self) -> [VertexNode; 3] {

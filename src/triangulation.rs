@@ -105,6 +105,7 @@ impl Triangulation {
     /// Utility function for locate via vis walk.
     ///
     /// Checks all edges for a triangle to go to the next tri or return None, i.e. stop locate at current tri.
+    #[must_use]
     pub fn choose_hedge<'a>(
         &self,
         v_hedges: &Vec<HedgeIterator<'a>>,
@@ -161,7 +162,7 @@ impl Triangulation {
                 let v2 = self.vertices[idx2];
                 TriangleExtended::Triangle([v0, v1, v2])
             }
-            (_, _, _) => return Err(anyhow::Error::msg("An unexpected triangle case occured")),
+            (_, _, _) => return Err(anyhow::Error::msg("An unexpected triangle case occurred")),
         };
 
         Ok(tri_extended)
@@ -273,13 +274,13 @@ impl Triangulation {
             self.weighted = true;
         }
 
-        for v in vertices.iter() {
+        for v in vertices {
             idxs_to_insert.push(self.vertices.len());
             self.vertices.push(*v);
         }
 
         if let Some(weights) = weights {
-            self.weights = weights.to_vec();
+            self.weights = weights.clone();
         } else {
             self.weights = vec![0.0; vertices.len()];
         }
@@ -328,7 +329,7 @@ impl Triangulation {
         self.time_walking += now.elapsed().as_micros();
 
         // Skip vertices that are not in power circle by epsilon (i.e. above the hyperplane)
-        // but only if the conataining triangle is casual (for now), i.e. the vertex is inside the current convex hull
+        // but only if the containing triangle is casual (for now), i.e. the vertex is inside the current convex hull
         if self.epsilon.is_some()
             && self.tds().get_tri(containing_tri_idx)?.is_casual()
             && !self.is_v_in_eps_powercircle(v_idx, containing_tri_idx)?
@@ -411,7 +412,7 @@ impl Triangulation {
         Ok(())
     }
 
-    /// Check if a triangle is flat, i.e. exists of three colinear points.
+    /// Check if a triangle is flat, i.e. exists of three co-linear points.
     pub fn is_tri_flat(&self, tri_idx: usize) -> Result<bool> {
         let tri = self.get_tri_type(tri_idx)?;
 
@@ -505,7 +506,7 @@ impl Triangulation {
             }
 
             // Check the redundant vertices, for this any computed triangulation should always be regular
-            for &v_idx in self.redundant_vertices.iter() {
+            for &v_idx in &self.redundant_vertices {
                 // skip vertices, that are part of the current triangle. Geogram predicates avoid return 0.0 (in favor of SOS) so a vertex exactly on the circle, might be considered inside
                 if self
                     .tds()
@@ -525,7 +526,7 @@ impl Triangulation {
             }
 
             // Check the used vertices, for this any computed triangulation should always be regular
-            for &v_idx in self.used_vertices.iter() {
+            for &v_idx in &self.used_vertices {
                 // skip vertices, that are part of the current triangle. Geogram predicates avoid return 0.0 (in favor of SOS) so a vertex exactly on the circle, might be considered inside
                 if self
                     .tds()
@@ -554,6 +555,7 @@ impl Triangulation {
     /// Checks regularity in a parallel manner using `rayon`s `par_iter()`.
     ///
     /// This can significantly reduce the runtime of this predicate.
+    #[must_use]
     pub fn is_regular_p(&self, with_ignored_vertices: bool) -> f64 {
         let num_tris = self.tds().num_tris();
 
@@ -702,12 +704,11 @@ impl Triangulation {
     }
 
     pub fn is_sound(&self) -> Result<bool> {
-        match self.tds().is_sound() {
-            true => Ok(true),
-            false => {
-                error!("Triangulation is not sound!");
-                Ok(false)
-            }
+        if self.tds().is_sound() {
+            Ok(true)
+        } else {
+            error!("Triangulation is not sound!");
+            Ok(false)
         }
     }
 
@@ -721,11 +722,13 @@ impl Triangulation {
     }
 
     /// The number of `casual` `tris`, i.e. without the ones that have an connection to the dummy point.
+    #[must_use]
     pub fn num_casual_tris(&self) -> usize {
         self.tds().num_casual_tris()
     }
 
     /// The number of total tris, i.e. `casual`, `conceptual` and `deleted` tris.
+    #[must_use]
     pub const fn num_all_tris(&self) -> usize {
         self.tds().num_tris() + self.tds().num_deleted_tris
     }
@@ -781,7 +784,7 @@ impl Triangulation {
                     );
 
                     if flip.is_none() {
-                        return Ok(None); // edge is not flippable (i.e. a 3 to 1 flip, that cant be made due to interntal structure of the triangulation)
+                        return Ok(None); // edge is not flippable (i.e. a 3 to 1 flip, that cant be made due to internal structure of the triangulation)
                     }
                 }
 
@@ -853,26 +856,31 @@ impl Triangulation {
     }
 
     /// Get the triangulation data structure, as reference.
+    #[must_use]
     pub const fn tds(&self) -> &TriDataStructure {
         &self.tds
     }
 
     /// Get the triangulation data structure, as mutable reference.
+    #[must_use]
     pub const fn tds_mut(&mut self) -> &mut TriDataStructure {
         &mut self.tds
     }
 
     /// Get the used vertices.
+    #[must_use]
     pub const fn used_vertices(&self) -> &Vec<usize> {
         &self.used_vertices
     }
 
     /// Get the vertices.
+    #[must_use]
     pub const fn vertices(&self) -> &Vec<[f64; 2]> {
         &self.vertices
     }
 
     /// Get the weights.
+    #[must_use]
     pub const fn weights(&self) -> &Vec<f64> {
         &self.weights
     }

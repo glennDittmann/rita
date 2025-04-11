@@ -21,7 +21,7 @@ pub fn sort_along_hilbert_curve_2d(vertices: &[Vertex2], indices_to_add: &[usize
                 let mut ind_c = Vec::new();
                 let mut ind_d = Vec::new();
 
-                for &ind in indices_to_add.iter() {
+                for ind in indices_to_add {
                     let vert = vertices[ind];
                     if vert[0] < sep_x {
                         if vert[1] < sep_y {
@@ -103,7 +103,7 @@ fn find_min_max_2d(vertices: &[Vertex2], indices_to_add: &[usize]) -> (Vertex2, 
     let mut v_min = vertices[indices_to_add[0]];
     let mut v_max = vertices[indices_to_add[0]];
 
-    for &ind in indices_to_add.iter() {
+    for &ind in indices_to_add {
         let vertex = vertices[ind];
         if v_min[0] > vertex[0] {
             v_min[0] = vertex[0];
@@ -128,7 +128,7 @@ pub fn sort_along_hilbert_curve_3d(vertices: &[Vertex3], indices_to_add: &[usize
     let mut pt_min = vertices[indices_to_add[0]];
     let mut pt_max = vertices[indices_to_add[0]];
 
-    for &ind in indices_to_add.iter() {
+    for &ind in indices_to_add {
         if pt_min[0] > vertices[ind][0] {
             pt_min[0] = vertices[ind][0];
         }

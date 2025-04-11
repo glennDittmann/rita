@@ -42,12 +42,12 @@ impl<'a> TetIterator<'a> {
 
     /// Check if the tetrahedron is conceptual, i.e. one of the nodes is the infinite node
     pub fn is_conceptual(&self) -> bool {
-        self.nodes().iter().any(|n| n.is_conceptual())
+        self.nodes().iter().any(VertexNode::is_conceptual)
     }
 
     pub fn is_sound(&self) -> bool {
         if self.should_del() || self.should_keep() {
-            log::error!("{}: tetrahedron remaining after triangulation.", self);
+            log::error!("{self}: tetrahedron remaining after triangulation.");
             return false;
         }
 
@@ -56,7 +56,7 @@ impl<'a> TetIterator<'a> {
         let mut sound = true;
 
         if n0 == n1 || n0 == n2 || n0 == n3 || n1 == n2 || n1 == n3 || n2 == n3 {
-            log::error!("{}: tetrahedron with duplicate nodes.", self);
+            log::error!("{self}: tetrahedron with duplicate nodes.");
             sound = false;
         }
 

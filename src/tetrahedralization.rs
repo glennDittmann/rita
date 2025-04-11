@@ -523,13 +523,13 @@ impl Tetrahedralization {
             self.weighted = true;
         }
 
-        for &v in vertices.iter() {
+        for &v in vertices {
             idxs_to_insert.push(self.vertices.len());
             self.vertices.push(v);
         }
 
         if let Some(weights) = weights {
-            self.weights = weights.to_vec();
+            self.weights = weights.clone();
         } else {
             self.weights = vec![0.0; vertices.len()];
         }
@@ -578,7 +578,7 @@ impl Tetrahedralization {
             }
 
             // Check the used vertices, for this any computed tetrahedralization should always be regular
-            for &v_idx in self.used_vertices.iter() {
+            for &v_idx in &self.used_vertices {
                 // NOTE: skip vertices, that are part of the current triangle. Geogram predicates avoid return 0.0 (in favor of SOS) so a vertex exactly on the circle, might be considered inside
                 if self
                     .tds()
@@ -730,7 +730,7 @@ impl Tetrahedralization {
                 Ok(false)
             }
             Err(e) => {
-                error!("Triangulation is not sound: {}", e);
+                error!("Triangulation is not sound: {e}");
                 Ok(false)
             }
         }

@@ -28,20 +28,18 @@ pub const NEIGHBOR_HALFEDGE: [[(usize, usize); 3]; 4] = [
 ///
 /// The edges are stored in a doubly-connected edge list (DCEL) manner.
 ///
-// ```
-// i   --> node0 \
-// |        |      \
-// v        v       |
-// i+1 --> node1 ---|
-// |        |       |-->  tetrahedron
-// v        v       |
-// i+2 --> node2 ---|
-// |        |       |
-// v        v      /
-// i+3 --> node3 /
-//
-//
-// ```
+/// ```ignore
+/// i   --> node0 \
+/// |        |      \
+/// v        v       |
+/// i+1 --> node1 ---|
+/// |        |       |-->  tetrahedron
+/// v        v       |
+/// i+2 --> node2 ---|
+/// |        |       |
+/// v        v      /
+/// i+3 --> node3 /
+/// ```
 //
 // such that `tri0 = (i+1, i+3, i+2)`
 //
@@ -466,7 +464,7 @@ impl TetDataStructure {
 
     /// Clean removed tetrahedra
     pub fn clean_to_del(&mut self) -> Result<()> {
-        self.tets_to_del.sort();
+        self.tets_to_del.sort_unstable();
 
         while let Some(tet_to_del_idx) = self.tets_to_del.pop() {
             self.should_del_tet[tet_to_del_idx] = false;

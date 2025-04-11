@@ -8,7 +8,9 @@ use core::fmt;
 /// A `conceptual node` is at infinity. Geometric operations are handled accordingly.
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum VertexNode {
+    /// A node that has an index into the input vertex list.
     Casual(VertexIdx),
+    /// A node that is at infinity. Geometric operations are handled accordingly.
     Conceptual,
     Deleted,
 }
@@ -36,7 +38,7 @@ impl VertexNode {
 impl fmt::Display for VertexNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            VertexNode::Casual(v_idx) => write!(f, "Casual({})", v_idx),
+            VertexNode::Casual(v_idx) => write!(f, "Casual({v_idx})"),
             VertexNode::Conceptual => write!(f, "Conceptual"),
             VertexNode::Deleted => write!(f, "Deleted"),
         }

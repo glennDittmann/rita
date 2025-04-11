@@ -36,23 +36,23 @@ impl<'a> HedgeIterator<'a> {
         let mut valid = true;
 
         if !(hedge_next.first_node() == last_node) {
-            log::error!("{}: Wrong next hedge", self);
+            log::error!("{self}: Wrong next hedge");
             valid = false;
         }
         if !(hedge_prev.last_node() == first_node) {
-            log::error!("{}: Wrong prev hedge", self);
+            log::error!("{self}: Wrong prev hedge");
             valid = false;
         }
         if !(hedge_opposite.first_node() == last_node)
             || !(hedge_opposite.last_node() == first_node)
         {
-            log::error!("{}: Wrong opposite hedge", self);
+            log::error!("{self}: Wrong opposite hedge");
             valid = false;
         }
         if !(hedge_neighbor.first_node() == last_node)
             || !(hedge_neighbor.last_node() == first_node)
         {
-            log::error!("{}: Wrong neighboring hedge", self);
+            log::error!("{self}: Wrong neighboring hedge");
             valid = false;
         }
 
