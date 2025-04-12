@@ -28,20 +28,18 @@ pub const NEIGHBOR_HALFEDGE: [[(usize, usize); 3]; 4] = [
 ///
 /// The edges are stored in a doubly-connected edge list (DCEL) manner.
 ///
-// ```
-// i   --> node0 \
-// |        |      \
-// v        v       |
-// i+1 --> node1 ---|
-// |        |       |-->  tetrahedron
-// v        v       |
-// i+2 --> node2 ---|
-// |        |       |
-// v        v      /
-// i+3 --> node3 /
-//
-//
-// ```
+/// ```ignore
+/// i   --> node0 \
+/// |        |      \
+/// v        v       |
+/// i+1 --> node1 ---|
+/// |        |       |-->  tetrahedron
+/// v        v       |
+/// i+2 --> node2 ---|
+/// |        |       |
+/// v        v      /
+/// i+3 --> node3 /
+/// ```
 //
 // such that `tri0 = (i+1, i+3, i+2)`
 //
@@ -72,7 +70,7 @@ impl Default for TetDataStructure {
 
 impl TetDataStructure {
     /// Simplicial structure initialisation
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             tet_nodes: Vec::new(),
             half_tri_opposite: Vec::new(),
@@ -85,7 +83,7 @@ impl TetDataStructure {
         }
     }
 
-    fn hedge(&self, ind_halftriangle: usize, ind_halfedge: usize) -> HedgeIterator<'_> {
+    const fn hedge(&self, ind_halftriangle: usize, ind_halfedge: usize) -> HedgeIterator<'_> {
         // TODO: remove this, this is just HedgeIterator::new(self, ind_halftriangle, ind_halfedge)
         HedgeIterator {
             tds: self,
@@ -94,7 +92,7 @@ impl TetDataStructure {
         }
     }
 
-    fn half_triangle(&self, ind_halftriangle: usize) -> HalfTriIterator {
+    const fn half_triangle(&self, ind_halftriangle: usize) -> HalfTriIterator {
         // TODO: remove this, this is just HalfTriIterator::new(self, ind_halftriangle, ind_halfedge)
         HalfTriIterator {
             tds: self,
@@ -132,7 +130,7 @@ impl TetDataStructure {
         num_casual_tets
     }
 
-    fn tet(&self, ind_tetrahedron: usize) -> TetIterator {
+    const fn tet(&self, ind_tetrahedron: usize) -> TetIterator {
         // TODO: remove this, this is just TetIterator::new(self, ind_halftriangle, ind_halfedge)
         TetIterator {
             tds: self,
@@ -150,7 +148,7 @@ impl TetDataStructure {
     }
 
     /// Gets number of triangles
-    pub fn num_tets(&self) -> usize {
+    pub const fn num_tets(&self) -> usize {
         self.num_tets
     }
 
@@ -362,7 +360,7 @@ impl TetDataStructure {
                             let ind_tri2 = he_cur.tri().idx();
                             let j2 = he_cur.idx();
                             let ind_cur2 = if let Some((i2, _)) =
-                                vec_tri.iter().enumerate().find(|(_, &ind)| ind == ind_tri2)
+                                vec_tri.iter().enumerate().find(|&(_, &ind)| ind == ind_tri2)
                             {
                                 i2
                             } else {
@@ -466,7 +464,7 @@ impl TetDataStructure {
 
     /// Clean removed tetrahedra
     pub fn clean_to_del(&mut self) -> Result<()> {
-        self.tets_to_del.sort();
+        self.tets_to_del.sort_unstable();
 
         while let Some(tet_to_del_idx) = self.tets_to_del.pop() {
             self.should_del_tet[tet_to_del_idx] = false;

@@ -1,5 +1,9 @@
 [package]
 name = "rita"
+version = "0.1.4"
+edition = "2021"
+rust-version = "1.73.0"
+
 description = "Randomized Incremental Triangulation Algorithms"
 keywords = [
     "computer-graphics",
@@ -8,25 +12,17 @@ keywords = [
     "geometry",
     "math",
 ]
-version = "0.1.4"
 repository = "https://github.com/glennDittmann/rita"
 authors = ["Glenn Dittmann <glenn.dittmann@posteo.de>"]
-edition = "2021"
-rust-version = "1.72.1"
 license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.44"
-geo = "0.28.0"
+anyhow = "1.0"
 geogram_predicates = "0.2.1"
-log = "0.4.14"
-nalgebra = "0.33.0"
-rand = "0.8.5"
-rand_distr = "0.4.3"
-rayon = "1.10.0"
-
-[dev-dependencies]
-approx_eq = "0.1.8"
-env_logger = "0.11.3"
+log = "0.4"
+nalgebra = "0.33"
+rand = "0.9"
+rand_distr = "0.5"
+rayon = "1.10"

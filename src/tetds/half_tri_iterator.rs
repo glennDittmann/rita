@@ -13,7 +13,7 @@ pub struct HalfTriIterator<'a> {
 }
 
 impl<'a> HalfTriIterator<'a> {
-    pub fn hedges(&self) -> [HedgeIterator<'a>; 3] {
+    pub const fn hedges(&self) -> [HedgeIterator<'a>; 3] {
         [
             HedgeIterator {
                 tds: self.tds,
@@ -33,7 +33,7 @@ impl<'a> HalfTriIterator<'a> {
         ]
     }
 
-    pub fn idx(&self) -> usize {
+    pub const fn idx(&self) -> usize {
         self.half_tri_idx
     }
 
@@ -55,7 +55,7 @@ impl<'a> HalfTriIterator<'a> {
 
     /// A triangle is considered conceptual if one of its nodes are conceptual
     pub fn is_conceptual(&self) -> bool {
-        self.nodes().iter().any(|n| n.is_conceptual())
+        self.nodes().iter().any(VertexNode::is_conceptual)
     }
 
     pub fn nodes(&self) -> [VertexNode; 3] {
@@ -82,7 +82,7 @@ impl<'a> HalfTriIterator<'a> {
         }
     }
 
-    pub fn tet(&self) -> TetIterator<'a> {
+    pub const fn tet(&self) -> TetIterator<'a> {
         TetIterator {
             tds: self.tds,
             tet_idx: self.half_tri_idx >> 2, // this is equivalent to self.half_tri_idx / 4 (rounding down to nearest integer), but faster

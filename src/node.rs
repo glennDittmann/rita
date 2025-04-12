@@ -8,14 +8,16 @@ use core::fmt;
 /// A `conceptual node` is at infinity. Geometric operations are handled accordingly.
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum VertexNode {
+    /// A node that has an index into the input vertex list.
     Casual(VertexIdx),
+    /// A node that is at infinity. Geometric operations are handled accordingly.
     Conceptual,
     Deleted,
 }
 
 impl VertexNode {
     /// Get the index of the node.
-    pub fn idx(&self) -> Option<VertexIdx> {
+    pub const fn idx(&self) -> Option<VertexIdx> {
         match self {
             VertexNode::Casual(idx) => Some(*idx),
             _ => None,
@@ -23,12 +25,12 @@ impl VertexNode {
     }
 
     /// Check if the node is conceptual.
-    pub fn is_conceptual(&self) -> bool {
+    pub const fn is_conceptual(&self) -> bool {
         matches!(self, VertexNode::Conceptual)
     }
 
     /// Check if the node is deleted.
-    pub fn is_deleted(&self) -> bool {
+    pub const fn is_deleted(&self) -> bool {
         matches!(self, VertexNode::Deleted)
     }
 }
@@ -36,7 +38,7 @@ impl VertexNode {
 impl fmt::Display for VertexNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            VertexNode::Casual(v_idx) => write!(f, "Casual({})", v_idx),
+            VertexNode::Casual(v_idx) => write!(f, "Casual({v_idx})"),
             VertexNode::Conceptual => write!(f, "Conceptual"),
             VertexNode::Deleted => write!(f, "Deleted"),
         }

@@ -10,22 +10,18 @@ use super::{tri_data_structure::TriDataStructure, tri_iterator::TriIterator};
 #[derive(Copy, Clone)]
 pub struct HedgeIterator<'a> {
     pub tds: &'a TriDataStructure,
+    /// The hedge idx of this iterator
     pub idx: HedgeIteratorIdx,
 }
 
 impl<'a> HedgeIterator<'a> {
-    pub fn new(tds: &'a TriDataStructure, idx: HedgeIteratorIdx) -> Self {
+    pub const fn new(tds: &'a TriDataStructure, idx: HedgeIteratorIdx) -> Self {
         Self { tds, idx }
     }
 
     /// Retrieve the node this hedge originates from.
     pub fn starting_node(&self) -> VertexNode {
-        self.tds.hedge_starting_nodes[self.idx()]
-    }
-
-    /// Get the hedge idx of this iterator
-    pub fn idx(&self) -> HedgeIteratorIdx {
-        self.idx
+        self.tds.hedge_starting_nodes[self.idx]
     }
 
     /// Check if the hedge is conceptual, i.e. one of the nodes is the infinite node
@@ -42,7 +38,7 @@ impl<'a> HedgeIterator<'a> {
 
         let mut check = |condition: bool, error_msg: &str| {
             if !condition {
-                error!("{}: {}", self, error_msg);
+                error!("{self}: {error_msg}");
                 sound = false;
             }
         };
@@ -59,17 +55,17 @@ impl<'a> HedgeIterator<'a> {
 
     /// Retrieve the node this hedge ends at.
     pub fn end_node(&self) -> VertexNode {
-        match (self.idx() % 3).cmp(&2) {
-            Ordering::Equal => self.tds.hedge_starting_nodes[self.idx() - 2],
-            Ordering::Greater | Ordering::Less => self.tds.hedge_starting_nodes[self.idx() + 1], // TODO: can this be greater, x % 3 is always 0, 1 or 2
+        match (self.idx % 3).cmp(&2) {
+            Ordering::Equal => self.tds.hedge_starting_nodes[self.idx - 2],
+            Ordering::Greater | Ordering::Less => self.tds.hedge_starting_nodes[self.idx + 1], // TODO: can this be greater, x % 3 is always 0, 1 or 2
         }
     }
 
     /// Retrieve the `next` half-edge belonging to the same triangle.
     pub fn next(&self) -> HedgeIterator<'a> {
-        match (self.idx() % 3).cmp(&2) {
-            Ordering::Equal => Self::new(self.tds, self.idx() - 2),
-            Ordering::Greater | Ordering::Less => Self::new(self.tds, self.idx() + 1),
+        match (self.idx % 3).cmp(&2) {
+            Ordering::Equal => Self::new(self.tds, self.idx - 2),
+            Ordering::Greater | Ordering::Less => Self::new(self.tds, self.idx + 1),
         }
     }
 
@@ -79,20 +75,20 @@ impl<'a> HedgeIterator<'a> {
     ///
     /// i.e. `self.starting_node() == self.twin().end_node()` and the other way around.
     pub fn twin(&self) -> HedgeIterator<'a> {
-        Self::new(self.tds, self.tds.hedge_twins[self.idx()])
+        Self::new(self.tds, self.tds.hedge_twins[self.idx])
     }
 
     /// Retrieve the `previous` half-edge belonging to the same triangle.
     pub fn prev(&self) -> HedgeIterator<'a> {
-        match (self.idx() % 3).cmp(&0) {
-            Ordering::Equal => Self::new(self.tds, self.idx() + 2),
-            Ordering::Greater | Ordering::Less => Self::new(self.tds, self.idx() - 1),
+        match (self.idx % 3).cmp(&0) {
+            Ordering::Equal => Self::new(self.tds, self.idx + 2),
+            Ordering::Greater | Ordering::Less => Self::new(self.tds, self.idx - 1),
         }
     }
 
     /// Retrieve the triangle this half-edge belongs to.
-    pub fn tri(&self) -> TriIterator<'a> {
-        TriIterator::new(self.tds, self.idx() / 3)
+    pub const fn tri(&self) -> TriIterator<'a> {
+        TriIterator::new(self.tds, self.idx / 3)
     }
 }
 
@@ -101,7 +97,7 @@ impl fmt::Display for HedgeIterator<'_> {
         write!(
             f,
             "Edge {}: {} -> {}",
-            self.idx(),
+            self.idx,
             self.starting_node(),
             self.end_node()
         )

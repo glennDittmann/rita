@@ -20,7 +20,7 @@ impl<'a> HedgeIterator<'a> {
         self.tds.tet_nodes[self.half_tri_idx - mod4 + sub_idx[self.hedge_idx]]
     }
 
-    pub fn idx(&self) -> usize {
+    pub const fn idx(&self) -> usize {
         self.hedge_idx
     }
 
@@ -36,23 +36,23 @@ impl<'a> HedgeIterator<'a> {
         let mut valid = true;
 
         if !(hedge_next.first_node() == last_node) {
-            log::error!("{}: Wrong next hedge", self);
+            log::error!("{self}: Wrong next hedge");
             valid = false;
         }
         if !(hedge_prev.last_node() == first_node) {
-            log::error!("{}: Wrong prev hedge", self);
+            log::error!("{self}: Wrong prev hedge");
             valid = false;
         }
         if !(hedge_opposite.first_node() == last_node)
             || !(hedge_opposite.last_node() == first_node)
         {
-            log::error!("{}: Wrong opposite hedge", self);
+            log::error!("{self}: Wrong opposite hedge");
             valid = false;
         }
         if !(hedge_neighbor.first_node() == last_node)
             || !(hedge_neighbor.last_node() == first_node)
         {
-            log::error!("{}: Wrong neighboring hedge", self);
+            log::error!("{self}: Wrong neighboring hedge");
             valid = false;
         }
 
@@ -68,7 +68,7 @@ impl<'a> HedgeIterator<'a> {
         self.tds.tet_nodes[self.half_tri_idx - mod4 + sub_idx[(self.hedge_idx + 1) % 3]]
     }
 
-    pub fn neighbor(&self) -> HedgeIterator<'a> {
+    pub const fn neighbor(&self) -> HedgeIterator<'a> {
         let mod4 = self.half_tri_idx % 4;
 
         let (neighbor_half_tri_idx, neighbor_hedge_idx) = NEIGHBOR_HALFEDGE[mod4][self.hedge_idx];
@@ -80,7 +80,7 @@ impl<'a> HedgeIterator<'a> {
         }
     }
 
-    pub fn next(&self) -> HedgeIterator<'a> {
+    pub const fn next(&self) -> HedgeIterator<'a> {
         HedgeIterator {
             tds: self.tds,
             hedge_idx: (self.hedge_idx + 1) % 3,
@@ -102,7 +102,7 @@ impl<'a> HedgeIterator<'a> {
         }
     }
 
-    pub fn prev(&self) -> HedgeIterator<'a> {
+    pub const fn prev(&self) -> HedgeIterator<'a> {
         HedgeIterator {
             tds: self.tds,
             hedge_idx: (self.hedge_idx + 2) % 3,
@@ -110,7 +110,7 @@ impl<'a> HedgeIterator<'a> {
         }
     }
 
-    pub fn tri(&self) -> HalfTriIterator<'a> {
+    pub const fn tri(&self) -> HalfTriIterator<'a> {
         HalfTriIterator {
             tds: self.tds,
             half_tri_idx: self.half_tri_idx,

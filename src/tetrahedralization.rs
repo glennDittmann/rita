@@ -69,7 +69,7 @@ impl Default for Tetrahedralization {
 }
 
 impl Tetrahedralization {
-    pub fn new(epsilon: Option<f64>) -> Self {
+    pub const fn new(epsilon: Option<f64>) -> Self {
         Self {
             epsilon,
             tds: TetDataStructure::new(),
@@ -101,7 +101,7 @@ impl Tetrahedralization {
         self.ignored_vertices.len()
     }
 
-    pub fn num_tets(&self) -> usize {
+    pub const fn num_tets(&self) -> usize {
         self.tds.num_tets()
     }
 
@@ -109,11 +109,11 @@ impl Tetrahedralization {
         self.used_vertices.len()
     }
 
-    pub fn tds(&self) -> &TetDataStructure {
+    pub const fn tds(&self) -> &TetDataStructure {
         &self.tds
     }
 
-    pub fn vertices(&self) -> &Vec<Vertex3> {
+    pub const fn vertices(&self) -> &Vec<Vertex3> {
         &self.vertices
     }
 
@@ -478,7 +478,7 @@ impl Tetrahedralization {
             idxs_to_insert.append(&mut aligned);
         }
 
-        log::info!(
+        log::trace!(
             "First tetrahedron computed in {}μs",
             now.elapsed().as_micros()
         );
@@ -504,8 +504,8 @@ impl Tetrahedralization {
 
         self.tds.clean_to_del()?;
 
-        log::info!("Walks computed in {} μs", self.time_walking);
-        log::info!("Insertions computed in {} μs", self.time_inserting);
+        log::trace!("Walks computed in {} μs", self.time_walking);
+        log::trace!("Insertions computed in {} μs", self.time_inserting);
 
         Ok(())
     }
@@ -523,13 +523,13 @@ impl Tetrahedralization {
             self.weighted = true;
         }
 
-        for &v in vertices.iter() {
+        for &v in vertices {
             idxs_to_insert.push(self.vertices.len());
             self.vertices.push(v);
         }
 
         if let Some(weights) = weights {
-            self.weights = weights.to_vec();
+            self.weights = weights.clone();
         } else {
             self.weights = vec![0.0; vertices.len()];
         }
@@ -544,7 +544,7 @@ impl Tetrahedralization {
             let now = std::time::Instant::now();
             idxs_to_insert = sort_along_hilbert_curve_3d(self.vertices(), &idxs_to_insert);
             self.time_hilbert = now.elapsed().as_micros();
-            log::info!("Hilbert curve computed in {} μs", now.elapsed().as_micros());
+            log::trace!("Hilbert curve computed in {} μs", now.elapsed().as_micros());
         }
 
         if self.tds.num_tets() == 0 {
@@ -558,8 +558,8 @@ impl Tetrahedralization {
 
         self.tds.clean_to_del()?;
 
-        log::info!("Walks computed in {} μs", self.time_walking);
-        log::info!("Insertions computed in {} μs", self.time_inserting);
+        log::trace!("Walks computed in {} μs", self.time_walking);
+        log::trace!("Insertions computed in {} μs", self.time_inserting);
 
         Ok(())
     }
@@ -578,14 +578,13 @@ impl Tetrahedralization {
             }
 
             // Check the used vertices, for this any computed tetrahedralization should always be regular
-            for &v_idx in self.used_vertices.iter() {
+            for &v_idx in &self.used_vertices {
                 // NOTE: skip vertices, that are part of the current triangle. Geogram predicates avoid return 0.0 (in favor of SOS) so a vertex exactly on the circle, might be considered inside
                 if self
                     .tds()
                     .get_tet(tet_idx)?
                     .nodes()
-                    .iter()
-                    .any(|&node| node == VertexNode::Casual(v_idx))
+                    .contains(&VertexNode::Casual(v_idx))
                 {
                     continue;
                 }
@@ -624,8 +623,7 @@ impl Tetrahedralization {
                             .get_tet(tet_idx)
                             .unwrap()
                             .nodes()
-                            .iter()
-                            .any(|&node| node == VertexNode::Casual(v_idx))
+                            .contains(&VertexNode::Casual(v_idx))
                         {
                             return false;
                         }
@@ -676,8 +674,7 @@ impl Tetrahedralization {
                 .tds()
                 .get_tet(tet_idx)?
                 .nodes()
-                .iter()
-                .any(|&node| node == VertexNode::Deleted)
+                .contains(&VertexNode::Deleted)
             {
                 continue;
             }
@@ -733,13 +730,13 @@ impl Tetrahedralization {
                 Ok(false)
             }
             Err(e) => {
-                error!("Triangulation is not sound: {}", e);
+                error!("Triangulation is not sound: {e}");
                 Ok(false)
             }
         }
     }
 
-    pub fn used_vertices(&self) -> &Vec<usize> {
+    pub const fn used_vertices(&self) -> &Vec<usize> {
         &self.used_vertices
     }
 }
