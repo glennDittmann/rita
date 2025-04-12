@@ -1,6 +1,6 @@
 # rita - Randomized Incremental Triangulation Algorithms
 
-An implemententation of (randomized) incremental weighted Delaunay triangulations in rust.
+An implementation of (randomized) incremental weighted Delaunay triangulations in rust.
 
 You can create a two- or three-dimensional Delaunay triangulation, including weighted points, as follows.
 
@@ -49,7 +49,7 @@ The eps parameter is used to perform an approximation technique, which leaves ou
 
 :warning: **This is a work in progress.** :warning:
 The algorithms work, as test coverage indicates.
-However, the code is not yet fully optimized and the API is not yet simplfied.
+However, the code is not yet fully optimized and the API is not yet simplified.
 There might be duplicate and unnecessarily complex code.
 
 ## Base implementation
@@ -80,7 +80,7 @@ _Code structure_
 _Conventions_
 - improved overall naming conventions
 - applied clippy style guide, e.g. exchanging a lot of if else with match
-- align naming in code with literature, i.e. flip namings, data strucuture namings etc.
+- align naming in code with literature, i.e. flip namings, data structure namings etc.
 
 _Algorithmic Improvements_
 - remove unneccary push of 2 extra edges after 2->2 flip
@@ -88,7 +88,7 @@ _Algorithmic Improvements_
 - early out for match case in should_flip_hedge that always returns false i.e. Flip::None
 - exchange geo::robust for geogram_predicates which has the same features plus:
   - perurbation of simplicity
-  - arithemtic schemes
+  - arithmetic schemes
 - add a naive version of _last inserted triangle_, which speeds up location (especially when using spatial sorting)
 
 

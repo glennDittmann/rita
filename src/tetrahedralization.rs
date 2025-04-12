@@ -97,7 +97,7 @@ impl Tetrahedralization {
         self.tds().num_casual_tets()
     }
 
-    pub const fn num_ignored_vertices(&self) -> usize {
+    pub fn num_ignored_vertices(&self) -> usize {
         self.ignored_vertices.len()
     }
 
@@ -105,7 +105,7 @@ impl Tetrahedralization {
         self.tds.num_tets()
     }
 
-    pub const fn num_used_vertices(&self) -> usize {
+    pub fn num_used_vertices(&self) -> usize {
         self.used_vertices.len()
     }
 

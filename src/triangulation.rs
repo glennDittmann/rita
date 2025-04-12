@@ -712,7 +712,7 @@ impl Triangulation {
         }
     }
 
-    pub const fn num_ignored_vertices(&self) -> usize {
+    pub fn num_ignored_vertices(&self) -> usize {
         self.ignored_vertices.len()
     }
 
@@ -733,11 +733,11 @@ impl Triangulation {
         self.tds().num_tris() + self.tds().num_deleted_tris
     }
 
-    pub const fn num_redundant_vertices(&self) -> usize {
+    pub fn num_redundant_vertices(&self) -> usize {
         self.redundant_vertices.len()
     }
 
-    pub const fn num_used_vertices(&self) -> usize {
+    pub fn num_used_vertices(&self) -> usize {
         self.used_vertices.len()
     }
 
@@ -863,7 +863,7 @@ impl Triangulation {
 
     /// Get the triangulation data structure, as mutable reference.
     #[must_use]
-    pub const fn tds_mut(&mut self) -> &mut TriDataStructure {
+    pub fn tds_mut(&mut self) -> &mut TriDataStructure {
         &mut self.tds
     }
 
