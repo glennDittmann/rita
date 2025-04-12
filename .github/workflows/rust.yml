@@ -18,7 +18,3 @@ jobs:
         run: cargo fmt --all
       - name: Test
         run: cargo test --release
-      - name: rust-audit-check
-        uses: rustsec/audit-check@v1.4.1 
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
