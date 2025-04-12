@@ -218,7 +218,7 @@ impl Triangulation {
 
         self.last_inserted_triangle = Some(0); // here the first triangle is the last inserted, as it is the initial casual triangle
 
-        log::info!(
+        log::trace!(
             "Initial triangle inserted in {:.4} µs",
             now.elapsed().as_micros()
         );
@@ -296,7 +296,7 @@ impl Triangulation {
 
             idxs_to_insert = sort_along_hilbert_curve_2d(&self.vertices, &idxs_to_insert);
 
-            log::info!(
+            log::trace!(
                 "Spatial sorting (hilbert curve) computed in {:.4} µs",
                 now.elapsed().as_micros()
             );
@@ -306,7 +306,7 @@ impl Triangulation {
             self.insert_init_tri(&mut idxs_to_insert)?;
         }
 
-        log::info!("Inserting {} vertices", idxs_to_insert.len());
+        log::debug!("Inserting {} vertices", idxs_to_insert.len());
 
         while let Some(v_idx) = idxs_to_insert.pop() {
             let near_to_idx = self
@@ -974,11 +974,11 @@ impl Triangulation {
     }
 
     fn log_time(&self) {
-        log::info!("-------------------------------------------");
-        log::info!("Time elapsed:");
-        log::info!("Inserts computed in {} μs", self.time_inserting);
-        log::info!("Walks computed in {} μs", self.time_walking);
-        log::info!("Flips computed in {} μs", self.time_flipping);
+        log::debug!("-------------------------------------------");
+        log::debug!("Time elapsed:");
+        log::debug!("Inserts computed in {} μs", self.time_inserting);
+        log::debug!("Walks computed in {} μs", self.time_walking);
+        log::debug!("Flips computed in {} μs", self.time_flipping);
     }
 
     fn is_flippable(
