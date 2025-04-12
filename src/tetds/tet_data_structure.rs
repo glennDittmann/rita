@@ -360,7 +360,7 @@ impl TetDataStructure {
                             let ind_tri2 = he_cur.tri().idx();
                             let j2 = he_cur.idx();
                             let ind_cur2 = if let Some((i2, _)) =
-                                vec_tri.iter().enumerate().find(|(_, &ind)| ind == ind_tri2)
+                                vec_tri.iter().enumerate().find(|&(_, &ind)| ind == ind_tri2)
                             {
                                 i2
                             } else {

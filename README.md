@@ -1,6 +1,6 @@
 # rita - Randomized Incremental Triangulation Algorithms
 
-An implementation of (randomized) incremental weighted Delaunay triangulations in rust.
+An implementation of (randomized) incremental weighted Delaunay triangulations in safe rust.
 
 You can create a two- or three-dimensional Delaunay triangulation, including weighted points, as follows.
 

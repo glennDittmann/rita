@@ -1,6 +1,8 @@
 //! # Rita
 //!
 //! An implementation of 2D and 3D weighted delaunay triangulation via incremental algorithms.
+#![forbid(unsafe_code)]
+#![deny(unused, clippy::incompatible_msrv)]
 
 pub use node::VertexNode;
 pub use tetrahedralization::Tetrahedralization;
