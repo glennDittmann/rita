@@ -24,8 +24,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
   
-      - name: Rustfmt
+      - name: fmt
         run: cargo fmt --check --all
         continue-on-error: true
-      - name: Lint
+      - name: clippy
         run: cargo clippy --all
