@@ -15,6 +15,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Rustfmt
-        run: cargo fmt --all
+        run: cargo fmt --check --all
+        continue-on-error: true
+      - name: Lint
+        run: cargo clippy --all
       - name: Test
-        run: cargo test --release
+        run: cargo test
