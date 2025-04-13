@@ -69,7 +69,7 @@ impl<'a> HedgeIterator<'a> {
         }
     }
 
-    /// Retrieve the `twin` (aka oppsosite) half-edge belonging to the same triangle.
+    /// Retrieve the `twin` (aka opposite) half-edge belonging to the same triangle.
     ///
     /// This is the hedge that goes in the opposite direction,
     ///
