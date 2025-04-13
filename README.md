@@ -55,6 +55,9 @@ The algorithms work, as test coverage indicates.
 However, the code is not yet fully optimized and the API is not yet simplified.
 There might be duplicate and unnecessarily complex code.
 
+## Robustness
+Robustness is achieved through [geogram_predicates](https://github.com/glenndittmann/geogram_predicates), which itself uses [cxx](https://github.com/dtolnay/cxx) to make the geometric predicates from [geogram](https://github.com/BrunoLevy/geogram) available in `rust`.
+
 ## Base implementation
 There is decent preliminary work done in the rust eco-system by [Bastien Durix](https://scholar.google.fr/citations?user=Crc4sdsAAAAJ&hl=fr) in the crate [simple_delaunay_lib](https://github.com/Ibujah/simple_delaunay_lib).
 
