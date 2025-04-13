@@ -1,5 +1,8 @@
 # rita - Randomized Incremental Triangulation Algorithms
 
+[![Crates.io version](https://img.shields.io/crates/v/rita.svg)](https://crates.io/crates/rita)
+![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-brightgreen.svg)
+
 An implementation of (randomized) incremental weighted Delaunay triangulations in safe rust.
 
 You can create a two- or three-dimensional Delaunay triangulation, including weighted points, as follows.

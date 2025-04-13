@@ -1,6 +1,7 @@
 name: Rust
 
 on:
+  pull_request:
   push:
     branches: ["main"]
 
@@ -14,7 +15,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
 
-      - name: Rustfmt
-        run: cargo fmt --all
       - name: Test
-        run: cargo test --release
+        run: cargo test
+
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+  
+      - name: Rustfmt
+        run: cargo fmt --check --all
+        continue-on-error: true
+      - name: Lint
+        run: cargo clippy --all
