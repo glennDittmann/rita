@@ -431,7 +431,7 @@ dependencies = [
 
 [[package]]
 name = "rita"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "anyhow",
  "geogram_predicates",
