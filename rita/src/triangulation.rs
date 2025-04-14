@@ -63,11 +63,11 @@ pub enum Flip {
 pub struct Triangulation {
     pub tds: TriDataStructure,
     pub vertices: Vec<Vertex2>,
-    pub weights: Vec<f64>,
+    /// The weights of the vertices, `Some` if the vertices are weighted
+    pub weights: Option<Vec<f64>>,
     time_flipping: u128,
     time_inserting: u128,
     time_walking: u128,
-    weighted: bool,
     last_inserted_triangle: Option<usize>,
     epsilon: Option<f64>,
     /// Vertices that are part of the triangulation (i.e. the input point set without redundant and ignored vertices).
@@ -89,17 +89,20 @@ impl Triangulation {
         Self {
             tds: TriDataStructure::new(),
             vertices: Vec::new(),
-            weights: Vec::new(),
+            weights: None,
             time_flipping: 0,
             time_inserting: 0,
             time_walking: 0,
-            weighted: false,
             last_inserted_triangle: None,
             epsilon,
             used_vertices: Vec::new(),
             ignored_vertices: Vec::new(),
             redundant_vertices: Vec::new(),
         }
+    }
+
+    pub(crate) const fn weighted(&self) -> bool {
+        self.weights.is_some()
     }
 
     /// Utility function for locate via vis walk.
@@ -170,7 +173,8 @@ impl Triangulation {
 
     /// Gets the height for a vertex
     pub fn height(&self, v_idx: VertexIdx) -> f64 {
-        self.vertices[v_idx][0].powi(2) + self.vertices[v_idx][1].powi(2) - self.weights[v_idx]
+        self.vertices[v_idx][0].powi(2) + self.vertices[v_idx][1].powi(2)
+            - self.weights.as_ref().map_or(0.0, |weights| weights[v_idx])
     }
 
     pub fn insert_init_tri(&mut self, v_idxs: &mut Vec<VertexIdx>) -> Result<()> {
@@ -240,7 +244,9 @@ impl Triangulation {
 
         let idx_to_insert = self.vertices.len();
         self.vertices.push(v);
-        self.weights.push(weight);
+        if let Some(weights) = &mut self.weights {
+            weights.push(weight);
+        }
 
         let near_to_idx: usize;
 
@@ -270,20 +276,12 @@ impl Triangulation {
     ) -> Result<()> {
         let mut idxs_to_insert = Vec::new();
 
-        if weights.is_some() {
-            self.weighted = true;
-        }
-
         for v in vertices {
             idxs_to_insert.push(self.vertices.len());
             self.vertices.push(*v);
         }
 
-        if let Some(weights) = weights {
-            self.weights = weights;
-        } else {
-            self.weights = vec![0.0; vertices.len()];
-        }
+        self.weights = weights;
 
         if self.vertices().len() < 3 {
             return Err(anyhow::Error::msg(
@@ -341,7 +339,7 @@ impl Triangulation {
         // Perform insert and measure time
         // Note in the weighted case we can check directly if the vertex is in the power circle of the triangle, cause it might already be redundant
         // if yes we can skip it, avoid flips and directly go to the next one
-        if self.weighted && !self.is_v_in_powercircle(v_idx, containing_tri_idx)? {
+        if self.weighted() && !self.is_v_in_powercircle(v_idx, containing_tri_idx)? {
             self.redundant_vertices.push(v_idx);
             return Ok(());
         }
@@ -775,7 +773,7 @@ impl Triangulation {
             ) => {
                 let mut flip = Some(Flip::TwoToTwo);
 
-                if self.weighted {
+                if self.weighted() {
                     // this can make flipe a 3->1, None or stay a 2->2
                     flip = self.is_flippable(
                         [idx_node_b, idx_node_d],
@@ -906,7 +904,7 @@ impl Triangulation {
 
     /// Get the weights.
     #[must_use]
-    pub const fn weights(&self) -> &Vec<f64> {
+    pub const fn weights(&self) -> &Option<Vec<f64>> {
         &self.weights
     }
 
@@ -938,7 +936,7 @@ impl Triangulation {
                 // they also share a common point
                 // we use the bisector to determine where the point lies in
                 // TODO: refactor this special case
-                if self.weighted
+                if self.weighted()
                     && hedge_twin.prev().twin().tri().is_conceptual()
                     && hedge_twin.next().twin().tri().is_conceptual()
                     && !hedge_twin.prev().starting_node().is_conceptual()

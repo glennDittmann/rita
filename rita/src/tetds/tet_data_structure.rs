@@ -359,10 +359,8 @@ impl TetDataStructure {
                         if !he_cur.tri().tet().should_del() {
                             let ind_tri2 = he_cur.tri().idx();
                             let j2 = he_cur.idx();
-                            let ind_cur2 = if let Some((i2, _)) = vec_tri
-                                .iter()
-                                .enumerate()
-                                .find(|&(_, &ind)| ind == ind_tri2)
+                            let ind_cur2 = if let Some((i2, _)) = vec_tri.iter()
+                                .enumerate().find(|&(_, &ind)| ind == ind_tri2)
                             {
                                 i2
                             } else {

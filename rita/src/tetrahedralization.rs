@@ -49,8 +49,8 @@ pub struct Tetrahedralization {
     epsilon: Option<f64>,
     tds: TetDataStructure,
     vertices: Vec<Vertex3>,
-    /// The weights of the vertices
-    weights: Vec<f64>,
+    /// The weights of the vertices, `Some` if the vertices are weighted
+    weights: Option<Vec<f64>>,
     pub time_hilbert: u128,
     time_walking: u128,
     time_inserting: u128,
@@ -58,8 +58,6 @@ pub struct Tetrahedralization {
     used_vertices: Vec<VertexIdx>,
     /// Indices of vertices that are ignored, i.e. skipped due to epsilon
     ignored_vertices: Vec<VertexIdx>,
-    /// If the vertices are weighted
-    weighted: bool,
 }
 
 impl Default for Tetrahedralization {
@@ -74,14 +72,17 @@ impl Tetrahedralization {
             epsilon,
             tds: TetDataStructure::new(),
             vertices: Vec::new(),
-            weights: Vec::new(),
+            weights: None,
             time_hilbert: 0,
             time_walking: 0,
             time_inserting: 0,
             used_vertices: Vec::new(),
             ignored_vertices: Vec::new(),
-            weighted: false,
         }
+    }
+
+    pub(crate) const fn weighted(&self) -> bool {
+        self.weights.is_some()
     }
 
     /// Gets the height for a vertex
@@ -89,7 +90,7 @@ impl Tetrahedralization {
         self.vertices[v_idx][0].powi(2)
             + self.vertices[v_idx][1].powi(2)
             + self.vertices[v_idx][2].powi(2)
-            - self.weights[v_idx]
+            - self.weights.as_ref().map_or(0.0, |weights| weights[v_idx])
     }
 
     /// The number of triangles, without the ones that have an connection to the dummy point.
@@ -424,7 +425,7 @@ impl Tetrahedralization {
             // but only if the containing tet is casual (for now), i.e. the vertex is inside the current convex hull
             self.ignored_vertices.push(v_idx);
             return Ok(0); // TODO return correct last added idx
-        } else if self.weighted
+        } else if self.weighted()
             && self.tds().get_tet(containing_tet_idx)?.is_casual()
             && !self.is_v_in_powersphere(v_idx, containing_tet_idx, false)?
         {
@@ -544,20 +545,12 @@ impl Tetrahedralization {
     ) -> Result<()> {
         let mut idxs_to_insert = Vec::new();
 
-        if weights.is_some() {
-            self.weighted = true;
-        }
-
         for &v in vertices {
             idxs_to_insert.push(self.vertices.len());
             self.vertices.push(v);
         }
 
-        if let Some(weights) = weights {
-            self.weights = weights;
-        } else {
-            self.weights = vec![0.0; vertices.len()];
-        }
+        self.weights = weights;
 
         if self.vertices().len() < 4 {
             return Err(anyhow::Error::msg(

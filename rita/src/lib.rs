@@ -1,4 +1,4 @@
-//! # Rita
+//! # rita
 //!
 //! An implementation of 2D and 3D weighted delaunay triangulation via incremental algorithms.
 #![forbid(unsafe_code)]
