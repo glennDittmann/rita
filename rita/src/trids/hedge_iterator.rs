@@ -7,7 +7,7 @@ use crate::{utils::types::HedgeIteratorIdx, VertexNode};
 use super::{tri_data_structure::TriDataStructure, tri_iterator::TriIterator};
 
 /// An iterator over the half-edges of a triangulation data structure.
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HedgeIterator<'a> {
     pub tds: &'a TriDataStructure,
     /// The hedge idx of this iterator

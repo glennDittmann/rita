@@ -26,7 +26,8 @@ const INACTIVE: usize = usize::MAX;
 //
 // such that `hedge1 = next(he3)`
 pub struct TriDataStructure {
-    pub hedge_starting_nodes: Vec<VertexNode>, // first node is stored, last can be obtained via %3
+    /// The first node is stored, the last can be obtained via `% 3`
+    pub hedge_starting_nodes: Vec<VertexNode>,
     pub hedge_twins: Vec<HedgeIteratorIdx>,
     pub num_tris: usize,
     /// The number of deleted triangles.

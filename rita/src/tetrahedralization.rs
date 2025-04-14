@@ -302,12 +302,12 @@ impl Tetrahedralization {
         Ok(is_flat)
     }
 
-    fn choose_tri<'a>(
+    fn choose_tri<'a, 'hi>(
         &self,
-        tris: &Vec<HalfTriIterator<'a>>,
+        tris: &'hi Vec<HalfTriIterator<'a>>,
         v: &[f64; 3],
-    ) -> Option<HalfTriIterator<'a>> {
-        for &tri in tris {
+    ) -> Option<&'hi HalfTriIterator<'a>> {
+        for tri in tris {
             let [node0, node1, node2] = tri.nodes();
 
             if let (
@@ -554,7 +554,7 @@ impl Tetrahedralization {
         }
 
         if let Some(weights) = weights {
-            self.weights = weights.clone();
+            self.weights = weights;
         } else {
             self.weights = vec![0.0; vertices.len()];
         }

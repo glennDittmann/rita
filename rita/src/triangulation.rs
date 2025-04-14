@@ -106,13 +106,13 @@ impl Triangulation {
     ///
     /// Checks all edges for a triangle to go to the next tri or return None, i.e. stop locate at current tri.
     #[must_use]
-    pub fn choose_hedge<'a>(
+    fn choose_hedge<'a>(
         &self,
         v_hedges: &Vec<HedgeIterator<'a>>,
         v: &[f64; 2],
     ) -> Option<HedgeIterator<'a>> {
         for hedge in v_hedges {
-            // TODO: note for this iter to work, HedgeIterator needs to implement Copy, we might get around this with lifetimes..
+            // TODO: note for this iter to work, HedgeIterator needs to implement Copy, you can get around this with lifetimes then the caller can't reuse the input vec..
 
             let idx0 = hedge.starting_node();
             let idx1 = hedge.end_node();
@@ -126,10 +126,10 @@ impl Triangulation {
 
                 if hedge.tri().is_conceptual() {
                     if orientation <= 0 {
-                        return Some(*hedge);
+                        return Some(hedge.clone());
                     }
                 } else if orientation < 0 {
-                    return Some(*hedge);
+                    return Some(hedge.clone());
                 }
             }
         }
@@ -280,7 +280,7 @@ impl Triangulation {
         }
 
         if let Some(weights) = weights {
-            self.weights = weights.clone();
+            self.weights = weights;
         } else {
             self.weights = vec![0.0; vertices.len()];
         }
@@ -385,11 +385,10 @@ impl Triangulation {
                         let tri_idx_abd = hedge.tri().idx;
                         let tri_idx_bcd = hedge.twin().tri().idx;
 
-                        let vertices_clone = self.vertices.clone();
-                        let t0 = self.tds_mut().flip_3_to_1(
+                        let t0 = self.tds.flip_3_to_1(
                             [tri_idx_abd, tri_idx_bcd, third_tri_idx],
                             relfex_node_idx,
-                            &vertices_clone, //TODO avoid cloning all vertices
+                            &self.vertices,
                         )?;
                         self.last_inserted_triangle = Some(t0.idx);
 

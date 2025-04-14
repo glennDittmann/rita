@@ -6,7 +6,7 @@ use super::{
     tet_iterator::TetIterator,
 };
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HalfTriIterator<'a> {
     pub tds: &'a TetDataStructure,
     pub half_tri_idx: usize,
