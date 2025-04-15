@@ -3,6 +3,7 @@
 //! An implementation of 2D and 3D weighted delaunay triangulation via incremental algorithms.
 #![forbid(unsafe_code)]
 #![deny(unused, clippy::incompatible_msrv)]
+#![warn(clippy::all, clippy::missing_const_for_fn)]
 
 pub use node::VertexNode;
 pub use tetrahedralization::Tetrahedralization;
@@ -21,6 +22,8 @@ mod test_utils {
 
     use rand::{distr::Uniform, prelude::Distribution};
     use rand_distr::Normal;
+
+    /// Get `n` vertices, in `range` or `-0.5..=0.5`
     pub fn sample_vertices_2d(n: usize, range: Option<RangeInclusive<f64>>) -> Vec<[f64; 2]> {
         let mut rng = rand::rng();
         let range = range.unwrap_or(-0.5..=0.5);
@@ -36,6 +39,7 @@ mod test_utils {
         vertices
     }
 
+    /// Get `n` vertices, in `range` or `-0.5..=0.5`
     pub fn sample_vertices_3d(n: usize, range: Option<RangeInclusive<f64>>) -> Vec<[f64; 3]> {
         let mut rng = rand::rng();
         let range = range.unwrap_or(-0.5..=0.5);
