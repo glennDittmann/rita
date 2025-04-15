@@ -43,7 +43,7 @@ pub enum ExtendedTetrahedron {
 /// let mut tetrahedralization = Tetrahedralization::new(None); // specify epsilon here
 /// let result = tetrahedralization.insert_vertices(&vertices, Some(weights), true);  // last parameter toggles spatial sorting
 /// println!("{:?}", result);
-/// assert_eq!(tetrahedralization.is_regular_p(false), 1.0);
+/// assert_eq!(tetrahedralization.par_is_regular(false), 1.0);
 /// ```
 pub struct Tetrahedralization {
     epsilon: Option<f64>,
@@ -154,9 +154,9 @@ impl Tetrahedralization {
                 VertexNode::Casual(v_idx2),
                 VertexNode::Casual(v_idx3),
             ) => {
-                let v1 = self.vertices()[v_idx1];
-                let v2 = self.vertices()[v_idx2];
-                let v3 = self.vertices()[v_idx3];
+                let v1 = self.vertices[v_idx1];
+                let v2 = self.vertices[v_idx2];
+                let v3 = self.vertices[v_idx3];
                 ExtendedTetrahedron::Triangle([v1, v3, v2])
             }
             (
@@ -165,9 +165,9 @@ impl Tetrahedralization {
                 VertexNode::Casual(v_idx2),
                 VertexNode::Casual(v_idx3),
             ) => {
-                let v0 = self.vertices()[v_idx0];
-                let v2 = self.vertices()[v_idx2];
-                let v3 = self.vertices()[v_idx3];
+                let v0 = self.vertices[v_idx0];
+                let v2 = self.vertices[v_idx2];
+                let v3 = self.vertices[v_idx3];
                 ExtendedTetrahedron::Triangle([v0, v2, v3])
             }
             (
@@ -176,9 +176,9 @@ impl Tetrahedralization {
                 VertexNode::Conceptual,
                 VertexNode::Casual(v_idx3),
             ) => {
-                let v0 = self.vertices()[v_idx0];
-                let v1 = self.vertices()[v_idx1];
-                let v3 = self.vertices()[v_idx3];
+                let v0 = self.vertices[v_idx0];
+                let v1 = self.vertices[v_idx1];
+                let v3 = self.vertices[v_idx3];
                 ExtendedTetrahedron::Triangle([v0, v3, v1])
             }
             (
@@ -187,9 +187,9 @@ impl Tetrahedralization {
                 VertexNode::Casual(v_idx2),
                 VertexNode::Conceptual,
             ) => {
-                let v0 = self.vertices()[v_idx0];
-                let v1 = self.vertices()[v_idx1];
-                let v2 = self.vertices()[v_idx2];
+                let v0 = self.vertices[v_idx0];
+                let v1 = self.vertices[v_idx1];
+                let v2 = self.vertices[v_idx2];
                 ExtendedTetrahedron::Triangle([v0, v1, v2])
             }
             (
@@ -198,10 +198,10 @@ impl Tetrahedralization {
                 VertexNode::Casual(v_idx2),
                 VertexNode::Casual(v_idx3),
             ) => {
-                let v0 = self.vertices()[v_idx0];
-                let v1 = self.vertices()[v_idx1];
-                let v2 = self.vertices()[v_idx2];
-                let v3 = self.vertices()[v_idx3];
+                let v0 = self.vertices[v_idx0];
+                let v1 = self.vertices[v_idx1];
+                let v2 = self.vertices[v_idx2];
+                let v3 = self.vertices[v_idx3];
                 ExtendedTetrahedron::Tetrahedron([v0, v1, v2, v3])
             }
             (_, _, _, _) => {
@@ -213,12 +213,12 @@ impl Tetrahedralization {
     }
 
     pub fn is_v_in_sphere(&self, v_idx: usize, tet_idx: usize, strict: bool) -> Result<bool> {
-        let p = self.vertices()[v_idx];
+        let p = self.vertices[v_idx];
 
         let ext_tet = self.get_tet_as_extended(tet_idx)?;
 
         let in_sphere = match ext_tet {
-            // TODO: why do we need to invert gp's in sphere, compared to robust's, they should have the same signes for the same cases
+            // TODO: why do we need to invert gp's in sphere, compared to robust's, they should have the same signs for the same cases
             ExtendedTetrahedron::Tetrahedron([a, b, c, d]) => {
                 -gp::in_sphere_3d_SOS(&a, &b, &c, &d, &p)
             }
@@ -233,13 +233,13 @@ impl Tetrahedralization {
     }
 
     fn is_v_in_powersphere(&self, v_idx: usize, tet_idx: usize, strict: bool) -> Result<bool> {
-        let p = self.vertices()[v_idx];
+        let p = self.vertices[v_idx];
         let h_p = self.height(v_idx);
 
         let ext_tet = self.get_tet_as_extended(tet_idx)?;
 
         let in_sphere = match ext_tet {
-            // TODO: why do we need to invert gp's in sphere, compared to robust's, they should have the same signes for the same cases
+            // TODO: why do we need to invert gp's in sphere, compared to robust's, they should have the same signs for the same cases
             ExtendedTetrahedron::Tetrahedron([a, b, c, d]) => {
                 let [h_a, h_b, h_c, h_d] = self
                     .tds()
@@ -261,7 +261,7 @@ impl Tetrahedralization {
     }
 
     fn is_v_in_eps_powersphere(&self, v_idx: usize, tet_idx: usize) -> Result<bool> {
-        let p = self.vertices()[v_idx];
+        let p = self.vertices[v_idx];
 
         let h_p = if self.epsilon.is_some() {
             self.height(v_idx) + self.epsilon.unwrap()
@@ -305,7 +305,7 @@ impl Tetrahedralization {
 
     fn choose_tri<'a, 'hi>(
         &self,
-        tris: &'hi Vec<HalfTriIterator<'a>>,
+        tris: &'hi [HalfTriIterator<'a>],
         v: &[f64; 3],
     ) -> Option<&'hi HalfTriIterator<'a>> {
         for tri in tris {
@@ -317,9 +317,9 @@ impl Tetrahedralization {
                 VertexNode::Casual(v_idx2),
             ) = (node0, node1, node2)
             {
-                let v0 = self.vertices()[v_idx0];
-                let v1 = self.vertices()[v_idx1];
-                let v2 = self.vertices()[v_idx2];
+                let v0 = self.vertices[v_idx0];
+                let v1 = self.vertices[v_idx1];
+                let v2 = self.vertices[v_idx2];
 
                 let orientation = -gp::orient_3d(&v0, &v1, &v2, v);
 
@@ -351,11 +351,11 @@ impl Tetrahedralization {
     }
 
     fn locate_vis_walk(&self, v_idx: usize, starting_tet_idx: usize) -> Result<usize> {
-        let v = self.vertices()[v_idx];
+        let v = self.vertices[v_idx];
 
         let mut curr_tet_idx = starting_tet_idx;
         let starting_tet = self.tds().get_tet(curr_tet_idx)?;
-        let mut tris: Vec<HalfTriIterator> = starting_tet.half_triangles().to_vec();
+        let mut tris = starting_tet.half_triangles().to_vec();
 
         let mut side = 0;
         let mut num_visited = 0;
@@ -450,12 +450,12 @@ impl Tetrahedralization {
         let now = std::time::Instant::now();
 
         // first tetrahedron insertion
-        if self.vertices().len() == idxs_to_insert.len() {
+        if self.vertices.len() == idxs_to_insert.len() {
             let idx0 = idxs_to_insert.pop().unwrap();
             let idx1 = idxs_to_insert.pop().unwrap();
 
-            let v0 = self.vertices()[idx0];
-            let v1 = self.vertices()[idx1];
+            let v0 = self.vertices[idx0];
+            let v1 = self.vertices[idx1];
 
             let mut aligned = Vec::new();
             let v01 = [v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]];
@@ -464,7 +464,7 @@ impl Tetrahedralization {
                 .iter()
                 .rev()
                 .enumerate()
-                .map(|(e, &idx)| (e, self.vertices()[idx]))
+                .map(|(e, &idx)| (e, self.vertices[idx]))
                 .map(|(e, v)| (e, [v[0] - v0[0], v[1] - v0[1], v[2] - v0[2]]))
                 .map(|(e, vec)| (e, vec[0] * v01[0] + vec[1] * v01[1] + vec[2] * v01[2]))
                 .map(|(e, scal)| if scal < 0.0 { (e, -scal) } else { (e, scal) })
@@ -473,11 +473,11 @@ impl Tetrahedralization {
                 .unwrap();
 
             let idx2 = idxs_to_insert.remove(i2);
-            let v2 = self.vertices()[idx2];
+            let v2 = self.vertices[idx2];
 
             loop {
                 if let Some(idx3) = idxs_to_insert.pop() {
-                    let v3 = self.vertices()[idx3];
+                    let v3 = self.vertices[idx3];
 
                     let orientation = -gp::orient_3d(&v0, &v1, &v2, &v3);
 
@@ -512,7 +512,10 @@ impl Tetrahedralization {
         Ok(())
     }
 
-    /// insert a single vertex in the structure
+    /// Insert a single vertex in the structure
+    ///
+    /// ## Errors
+    /// Returns an error if `self` does not have any triangles in it.
     pub fn insert_vertex(&mut self, v: [f64; 3], near_to_idx: Option<usize>) -> Result<()> {
         if self.tds.num_tets() == 0 {
             return Err(anyhow::Error::msg(
@@ -552,7 +555,7 @@ impl Tetrahedralization {
 
         self.weights = weights;
 
-        if self.vertices().len() < 4 {
+        if self.vertices.len() < 4 {
             return Err(anyhow::Error::msg(
                 "Needs at least 4 vertices to compute Delaunay",
             ));
@@ -560,7 +563,7 @@ impl Tetrahedralization {
 
         if spatial_sorting {
             let now = std::time::Instant::now();
-            idxs_to_insert = sort_along_hilbert_curve_3d(self.vertices(), &idxs_to_insert);
+            idxs_to_insert = sort_along_hilbert_curve_3d(&self.vertices, &idxs_to_insert);
             self.time_hilbert = now.elapsed().as_micros();
             log::trace!("Hilbert curve computed in {} μs", now.elapsed().as_micros());
         }
@@ -624,7 +627,8 @@ impl Tetrahedralization {
     /// Checks regularity in a parallel manner using `rayon`s `par_iter()`.
     ///
     /// This can significantly reduce the runtime of this predicate.
-    pub fn is_regular_p(&self, with_ignored_vertices: bool) -> f64 {
+    #[must_use]
+    pub fn par_is_regular(&self, with_ignored_vertices: bool) -> f64 {
         let num_tets = self.tds().num_tets();
 
         let num_violated_tets: f64 = (0..num_tets)
@@ -905,7 +909,7 @@ mod tests {
         let elapsed = now.elapsed().as_millis();
 
         let now = std::time::Instant::now();
-        let _regular_p = tetrahedralization.is_regular_p(false);
+        let _regular_p = tetrahedralization.par_is_regular(false);
         let elapsed_p = now.elapsed().as_millis();
 
         assert!(elapsed_p < elapsed)

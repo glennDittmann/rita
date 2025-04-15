@@ -59,7 +59,7 @@ pub(crate) enum Flip {
 /// let mut triangulation = Triangulation::new(None); // specify epsilon here
 /// let result = triangulation.insert_vertices(&vertices, Some(weights), true);  // last parameter toggles spatial sorting
 ///
-/// assert_eq!(triangulation.is_regular_p(false), 1.0);
+/// assert_eq!(triangulation.par_is_regular(false), 1.0);
 /// ```
 pub struct Triangulation {
     pub tds: TriDataStructure,
@@ -231,6 +231,9 @@ impl Triangulation {
     }
 
     /// Insert a vertex into the triangulation.
+    ///
+    /// ## Errors
+    /// Returns an error if `self` does not have any triangles in it.
     pub fn insert_vertex(
         &mut self,
         v: [f64; 2],
@@ -268,7 +271,7 @@ impl Triangulation {
 
     /// Insert a set of vertices into the triangulation.
     ///
-    /// For the classical Delaunay triangulation, set all weights to 0.0, i.e. pass something like `vec![0.0; n]`.
+    /// For the classical Delaunay triangulation, don't set weights.
     pub fn insert_vertices(
         &mut self,
         vertices: &[Vertex2],
@@ -554,7 +557,7 @@ impl Triangulation {
     ///
     /// This can significantly reduce the runtime of this predicate.
     #[must_use]
-    pub fn is_regular_p(&self, with_ignored_vertices: bool) -> f64 {
+    pub fn par_is_regular(&self, with_ignored_vertices: bool) -> f64 {
         let num_tris = self.tds().num_tris();
         let num_deleted_tris = self.tds().num_deleted_tris;
 
@@ -1126,7 +1129,7 @@ mod tests {
     use crate::test_utils::{sample_vertices_2d, sample_weights};
 
     fn verify_triangulation(triangulation: &Triangulation) {
-        let regularity = triangulation.is_regular_p(false);
+        let regularity = triangulation.par_is_regular(false);
         let sound = triangulation.is_sound().unwrap();
         assert_eq!(regularity, 1.0);
         assert!(sound);
@@ -1289,7 +1292,7 @@ mod tests {
         let elapsed = now.elapsed().as_millis();
 
         let now = std::time::Instant::now();
-        let _regular_p = triangulation.is_regular_p(false);
+        let _regular_p = triangulation.par_is_regular(false);
         let elapsed_p = now.elapsed().as_millis();
 
         assert!(elapsed_p < elapsed)
