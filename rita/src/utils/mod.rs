@@ -1,4 +1,3 @@
-pub mod convexity;
-pub mod helper;
-pub mod point_order;
+pub(crate) mod convexity;
+pub(crate) mod point_order;
 pub mod types;

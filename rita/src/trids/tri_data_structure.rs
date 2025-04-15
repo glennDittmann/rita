@@ -27,8 +27,8 @@ const INACTIVE: usize = usize::MAX;
 // such that `hedge1 = next(he3)`
 pub struct TriDataStructure {
     /// The first node is stored, the last can be obtained via `% 3`
-    pub hedge_starting_nodes: Vec<VertexNode>,
-    pub hedge_twins: Vec<HedgeIteratorIdx>,
+    pub(crate) hedge_starting_nodes: Vec<VertexNode>,
+    pub(crate) hedge_twins: Vec<HedgeIteratorIdx>,
     pub num_tris: usize,
     /// The number of deleted triangles.
     pub num_deleted_tris: usize, // we also need to track the number of deleted to index into the existing one correctly (otherwise we would have to shift all indices, which is tedious)

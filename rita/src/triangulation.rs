@@ -30,7 +30,8 @@ pub enum TriangleExtended {
 }
 
 #[derive(Debug)]
-pub enum Flip {
+pub(crate) enum Flip {
+    #[allow(unused)]
     OneToThree,
     TwoToTwo,
     ThreeToOne((usize, usize)), // this flip saves the index of the third triangle and the reflex vertex that is part of the reflex wedge as (third tri idx, reflex vertex idx)
@@ -739,7 +740,7 @@ impl Triangulation {
         self.used_vertices.len()
     }
 
-    pub fn should_flip_hedge(&mut self, hedge_idx: usize) -> Result<Option<Flip>> {
+    pub(crate) fn should_flip_hedge(&mut self, hedge_idx: usize) -> Result<Option<Flip>> {
         let hedge = self.tds().get_hedge(hedge_idx)?;
 
         // Skip hedges that have been deleted by 3->1 flips

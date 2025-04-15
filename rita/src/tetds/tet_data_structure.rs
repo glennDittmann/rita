@@ -7,11 +7,11 @@ use super::{
 
 // For each tri idx within a tet, associate list of vertex idx triples, i.e. the face indices
 /// For each triangle index within tetrahedron, associate list of vertices within tetrahedron
-pub const TRIANGLE_SUBINDICES: [[usize; 3]; 4] = [[1, 3, 2], [0, 2, 3], [0, 3, 1], [0, 1, 2]];
+pub(crate) const TRIANGLE_SUBINDICES: [[usize; 3]; 4] = [[1, 3, 2], [0, 2, 3], [0, 3, 1], [0, 1, 2]];
 
 /// For each triangle index, for each halfedge index, associate triangle and halfedge index within
 /// tetrahedron
-pub const NEIGHBOR_HALFEDGE: [[(usize, usize); 3]; 4] = [
+pub(crate) const NEIGHBOR_HALFEDGE: [[(usize, usize); 3]; 4] = [
     [(2, 1), (1, 1), (3, 1)],
     [(3, 2), (0, 1), (2, 0)],
     [(1, 2), (0, 0), (3, 0)],
@@ -50,13 +50,14 @@ pub const NEIGHBOR_HALFEDGE: [[(usize, usize); 3]; 4] = [
 // such that `tri3 = (i, i+1, i+2)`
 pub struct TetDataStructure {
     pub tet_nodes: Vec<VertexNode>,
-    pub half_tri_opposite: Vec<usize>,
+    /// Opposite half triangle index of this tet
+    pub(crate) half_tri_opposite: Vec<usize>,
 
     num_tets: usize,
 
     // structures to speed up tetrahedra insertion with Bowyer Watson algorithm
-    pub should_del_tet: Vec<bool>,
-    pub should_keep_tet: Vec<bool>,
+    pub(crate) should_del_tet: Vec<bool>,
+    pub(crate) should_keep_tet: Vec<bool>,
     tets_to_del: Vec<usize>,
     tets_to_keep: Vec<usize>,
     tets_to_check: Vec<usize>,
@@ -384,7 +385,7 @@ impl TetDataStructure {
             }
         }
 
-        let mut added_tets = Vec::new();
+        let mut added_tets = Vec::with_capacity(vec_tri.len());
         // 3 - create tetrahedra
         for i in &vec_tri {
             let cur_tri = HalfTriIterator {
