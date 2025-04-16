@@ -867,6 +867,32 @@ impl Triangulation {
         &mut self.tds
     }
 
+    /// Get the triangles of the triangulation as `Triangle2`, i.e `[[f64; 2]; 3]`.
+    ///
+    /// Does not include conceptual triangles, i.e. the convex hull edges
+    /// connected to the point at infinity.
+    pub fn tris(&self) -> Vec<Triangle2> {
+        // todo: handle the results gracefully, instead of unwrapping (which is safe here though)
+        let mut tris = Vec::new();
+
+        for tri_idx in 0..self.tds().num_tris() {
+            let tri = self.tds().get_tri(tri_idx).unwrap();
+            let [node0, node1, node2] = tri.nodes();
+
+            if tri.is_conceptual() || tri.is_deleted() {
+                continue;
+            }
+
+            let v0 = self.vertices[node0.idx().unwrap()];
+            let v1 = self.vertices[node1.idx().unwrap()];
+            let v2 = self.vertices[node2.idx().unwrap()];
+
+            let triangle = [v0, v1, v2];
+            tris.push(triangle);
+        }
+        tris
+    }
+
     /// Get the used vertices.
     #[must_use]
     pub const fn used_vertices(&self) -> &Vec<usize> {
@@ -1109,6 +1135,24 @@ mod tests {
     }
 
     const NUM_VERTICES_LIST: [usize; 7] = [3, 5, 10, 50, 100, 500, 1000];
+
+    #[test]
+    fn test_get_tris() {
+        let vertices = sample_vertices_2d(4, None);
+        let mut triangulation = Triangulation::new(None);
+
+        triangulation
+            .insert_vertices(&vertices, None, true)
+            .unwrap();
+
+        let tris = triangulation.tris();
+        let num_tris = tris.len();
+
+        assert!(
+            tris.len() == 2 || tris.len() == 3,
+            "Expected 2 or 3 triangles, got {num_tris}"
+        );
+    }
 
     #[test]
     fn test_delaunay_2d() {
