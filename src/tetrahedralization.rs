@@ -118,26 +118,24 @@ impl Tetrahedralization {
     /// Does not include conceptual tetrahedra, i.e. the convex hull faces
     /// connected to the point at infinity.
     pub fn tets(&self) -> Vec<Tetrahedron3> {
-        // todo: handle the results gracefully, instead of unwrapping (which is safe here though)
-        let mut tets = Vec::new();
+        // todo: handle the results gracefully, instead of unwrapping or .ok() (which is safe here though)
+        (0..self.tds().num_tets())
+            .filter_map(|tet_idx| {
+                let tet = self.tds().get_tet(tet_idx).ok()?;
 
-        for tet_idx in 0..self.tds().num_tets() {
-            let tet = self.tds().get_tet(tet_idx).unwrap();
-            let [node0, node1, node2, node3] = tet.nodes();
+                if tet.is_conceptual() {
+                    return None;
+                }
 
-            if tet.is_conceptual() {
-                continue;
-            }
-
-            let v0 = self.vertices[node0.idx().unwrap()];
-            let v1 = self.vertices[node1.idx().unwrap()];
-            let v2 = self.vertices[node2.idx().unwrap()];
-            let v3 = self.vertices[node3.idx().unwrap()];
-
-            let tet = [v0, v1, v2, v3];
-            tets.push(tet);
-        }
-        tets
+                let [node0, node1, node2, node3] = tet.nodes();
+                Some([
+                    self.vertices[node0.idx().unwrap()],
+                    self.vertices[node1.idx().unwrap()],
+                    self.vertices[node2.idx().unwrap()],
+                    self.vertices[node3.idx().unwrap()],
+                ])
+            })
+            .collect()
     }
 
     pub const fn vertices(&self) -> &Vec<Vertex3> {
