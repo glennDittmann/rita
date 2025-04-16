@@ -113,6 +113,33 @@ impl Tetrahedralization {
         &self.tds
     }
 
+    /// Get the tetrahedra of the tetrahedralization as `Tetrahedron3`, i.e `[[f64; 3]; 4]`.
+    ///
+    /// Does not include conceptual tetrahedra, i.e. the convex hull faces
+    /// connected to the point at infinity.
+    pub fn tets(&self) -> Vec<Tetrahedron3> {
+        // todo: handle the results gracefully, instead of unwrapping (which is safe here though)
+        let mut tets = Vec::new();
+
+        for tet_idx in 0..self.tds().num_tets() {
+            let tet = self.tds().get_tet(tet_idx).unwrap();
+            let [node0, node1, node2, node3] = tet.nodes();
+
+            if tet.is_conceptual() {
+                continue;
+            }
+
+            let v0 = self.vertices[node0.idx().unwrap()];
+            let v1 = self.vertices[node1.idx().unwrap()];
+            let v2 = self.vertices[node2.idx().unwrap()];
+            let v3 = self.vertices[node3.idx().unwrap()];
+
+            let tet = [v0, v1, v2, v3];
+            tets.push(tet);
+        }
+        tets
+    }
+
     pub const fn vertices(&self) -> &Vec<Vertex3> {
         &self.vertices
     }
@@ -765,6 +792,24 @@ mod tests {
     }
 
     const NUM_VERTICES_LIST: [usize; 7] = [4, 5, 10, 50, 100, 500, 1000];
+
+    #[test]
+    fn test_get_tets() {
+        let vertices = sample_vertices_3d(5, None);
+        let mut tetrahedralization = Tetrahedralization::new(None);
+
+        tetrahedralization
+            .insert_vertices(&vertices, None, true)
+            .unwrap();
+
+        let tets = tetrahedralization.tets();
+        let num_tets = tets.len();
+
+        assert!(
+            tets.len() == 2 || tets.len() == 3,
+            "Expected 2 or 3 tetrahedra, got {num_tets}"
+        );
+    }
 
     #[test]
     fn test_delaunay_3d() {
