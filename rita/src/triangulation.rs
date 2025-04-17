@@ -85,11 +85,74 @@ impl Default for Triangulation {
     }
 }
 
+/// Create a new [`Triangulation`] from vertices with optional weights and epsilon.
+///
+/// ## Example
+/// ```
+/// # use rita::triangulation;
+/// triangulation!(&[[0.0, 9.9], [6.9, 12.3], [5.2, 3.33]]);
+/// // with epsilon
+/// triangulation!(&[[0.0, 9.9], [6.9, 12.3], [5.2, 3.33]], epsilon = 1e-9);
+/// // with weights
+/// triangulation!(&[[0.0, 9.9], [6.9, 12.3], [5.2, 3.33]], vec![0.2, 1.3]);
+/// // with weights and epsilon
+/// triangulation!(&[[0.0, 9.9], [6.9, 12.3], [5.2, 3.33]], vec![0.2, 1.3], epsilon = 1e-9);
+/// ```
+#[macro_export]
+macro_rules! triangulation {
+    ($vertices:expr) => {
+        {
+            let mut triangulation = $crate::Triangulation::new_with_vert_capacity(None, $vertices.len());
+            let _ = triangulation.insert_vertices($vertices, None, true);
+            triangulation
+        }
+    };
+    ($vertices:expr, epsilon = $epsilon:expr) => {
+        {
+            let mut triangulation = $crate::Triangulation::new_with_vert_capacity(Some($epsilon), $vertices.len());
+            let _ = triangulation.insert_vertices($vertices, None, true);
+            triangulation
+        }
+    };
+    // with weights
+    ($vertices:expr, $weights:expr) => {
+        {
+            let mut triangulation = $crate::Triangulation::new_with_vert_capacity(None, $vertices.len());
+            let _ = triangulation.insert_vertices($vertices, Some($weights), true);
+            triangulation
+        }
+    };
+    ($vertices:expr, $weights:expr, epsilon = $epsilon:expr) => {
+        {
+            let mut triangulation = $crate::Triangulation::new_with_vert_capacity(Some($epsilon), $vertices.len());
+            let _ = triangulation.insert_vertices($vertices, Some($weights), true);
+            triangulation
+        }
+    };
+}
+
 impl Triangulation {
     pub const fn new(epsilon: Option<f64>) -> Self {
         Self {
             tds: TriDataStructure::new(),
             vertices: Vec::new(),
+            weights: None,
+            time_flipping: 0,
+            time_inserting: 0,
+            time_walking: 0,
+            last_inserted_triangle: None,
+            epsilon,
+            used_vertices: Vec::new(),
+            ignored_vertices: Vec::new(),
+            redundant_vertices: Vec::new(),
+        }
+    }
+
+    /// Create a new `Triangulation` with a pre-allocated capacity for vertices
+    pub fn new_with_vert_capacity(epsilon: Option<f64>, capacity: usize) -> Self {
+        Self {
+            tds: TriDataStructure::new(),
+            vertices: Vec::with_capacity(capacity),
             weights: None,
             time_flipping: 0,
             time_inserting: 0,
@@ -1298,5 +1361,70 @@ mod tests {
         let elapsed_p = now.elapsed().as_millis();
 
         assert!(elapsed_p < elapsed)
+    }
+
+    #[test]
+    fn results_same_2d() {
+        let vertices = &[
+            [4.9, 31.9],
+            [44.2, -0.05],
+            [-49.31, 2.4],
+            [98.5, -6.9],
+            [7.7, 9.1],
+            [3.5, 6.1],
+            [6.0, -3.46],
+            [4.7, 91.5],
+            [6.7, 3.6],
+            [-3.7, -40.3]
+        ];
+
+        assert_eq!(
+            triangulation!(vertices).tris(),
+            vec![
+                [[6.0, -3.46], [3.5, 6.1], [-49.31, 2.4]],
+                [[4.7, 91.5], [4.9, 31.9], [44.2, -0.05]],
+                [[3.5, 6.1], [7.7, 9.1], [4.9, 31.9]],
+                [[3.5, 6.1], [6.0, -3.46], [6.7, 3.6]],
+                [[-3.7, -40.3], [98.5, -6.9], [44.2, -0.05]],
+                [[3.5, 6.1], [6.7, 3.6], [7.7, 9.1]],
+                [[44.2, -0.05], [6.0, -3.46], [-3.7, -40.3]],
+                [[-49.31, 2.4], [-3.7, -40.3], [6.0, -3.46]],
+                [[-49.31, 2.4], [3.5, 6.1], [4.9, 31.9]],
+                [[4.9, 31.9], [7.7, 9.1], [44.2, -0.05]],
+                [[4.9, 31.9], [4.7, 91.5], [-49.31, 2.4]],
+                [[44.2, -0.05], [98.5, -6.9], [4.7, 91.5]],
+                [[7.7, 9.1], [6.7, 3.6], [44.2, -0.05]],
+                [[44.2, -0.05], [6.7, 3.6], [6.0, -3.46]]
+            ]
+        );
+
+        let vertices = &[
+            [-0.37122939978339264, 0.3190369464265699],
+            [0.44217013845102393, -0.055915696282054284],
+            [-0.4931480236200205, -0.16592024114317144],
+            [0.4250889854947786, -0.11789966697253218],
+            [0.24723377358550735, 0.2100464123915723],
+            [0.36490258549176935, 0.1365021615193457],
+            [0.3504827256051506, -0.19027659995331642],
+            [-0.28683831662024745, 0.4111240123491553],
+            [0.37042241707160173, 0.18423333136526698],
+            [-0.3855198542371303, -0.44705493099901394]
+        ];
+
+        assert_eq!(
+            triangulation!(vertices).tris(),
+            vec![
+                [[-0.4931480236200205, -0.16592024114317144], [-0.3855198542371303, -0.44705493099901394], [0.3504827256051506, -0.19027659995331642]],
+                [[-0.37122939978339264, 0.3190369464265699], [-0.4931480236200205, -0.16592024114317144], [0.24723377358550735, 0.2100464123915723]],
+                [[-0.28683831662024745, 0.4111240123491553], [0.24723377358550735, 0.2100464123915723], [0.37042241707160173, 0.18423333136526698]],
+                [[0.24723377358550735, 0.2100464123915723], [-0.28683831662024745, 0.4111240123491553], [-0.37122939978339264, 0.3190369464265699]],
+                [[0.3504827256051506, -0.19027659995331642], [0.24723377358550735, 0.2100464123915723], [-0.4931480236200205, -0.16592024114317144]],
+                [[0.24723377358550735, 0.2100464123915723], [0.36490258549176935, 0.1365021615193457], [0.37042241707160173, 0.18423333136526698]],
+                [[0.37042241707160173, 0.18423333136526698], [0.36490258549176935, 0.1365021615193457], [0.44217013845102393, -0.055915696282054284]],
+                [[0.36490258549176935, 0.1365021615193457], [0.24723377358550735, 0.2100464123915723], [0.3504827256051506, -0.19027659995331642]],
+                [[0.44217013845102393, -0.055915696282054284], [0.36490258549176935, 0.1365021615193457], [0.3504827256051506, -0.19027659995331642]],
+                [[0.3504827256051506, -0.19027659995331642], [0.4250889854947786, -0.11789966697253218], [0.44217013845102393, -0.055915696282054284]]
+            ]
+        );
     }
 }
