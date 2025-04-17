@@ -446,7 +446,7 @@ impl Tetrahedralization {
         Ok(new_tets[0])
     }
 
-    fn insert_first_tet(&mut self, idxs_to_insert: &mut Vec<usize>) -> Result<()> {
+    fn insert_first_tet(&mut self, idxs_to_insert: &mut Vec<usize>, spatial_sorting: bool) -> Result<()> {
         let now = std::time::Instant::now();
 
         // first tetrahedron insertion
@@ -472,7 +472,12 @@ impl Tetrahedralization {
                 .map(|(e, _)| e)
                 .unwrap();
 
-            let idx2 = idxs_to_insert.remove(i2);
+            // todo this needs a double check
+            let idx2 = if spatial_sorting {
+                idxs_to_insert.remove(i2)
+            } else {
+                idxs_to_insert.swap_remove(i2)
+            };
             let v2 = self.vertices[idx2];
 
             loop {
@@ -546,7 +551,7 @@ impl Tetrahedralization {
         weights: Option<Vec<f64>>,
         spatial_sorting: bool,
     ) -> Result<()> {
-        let mut idxs_to_insert = Vec::new();
+        let mut idxs_to_insert = Vec::with_capacity(vertices.len());
 
         for &v in vertices {
             idxs_to_insert.push(self.vertices.len());
@@ -563,13 +568,13 @@ impl Tetrahedralization {
 
         if spatial_sorting {
             let now = std::time::Instant::now();
-            idxs_to_insert = sort_along_hilbert_curve_3d(&self.vertices, &idxs_to_insert);
+            idxs_to_insert = sort_along_hilbert_curve_3d(&self.vertices, idxs_to_insert);
             self.time_hilbert = now.elapsed().as_micros();
             log::trace!("Hilbert curve computed in {} μs", now.elapsed().as_micros());
         }
 
         if self.tds.num_tets() == 0 {
-            self.insert_first_tet(&mut idxs_to_insert)?;
+            self.insert_first_tet(&mut idxs_to_insert, spatial_sorting)?;
         }
 
         let mut last_added_idx = self.tds.num_tets() - 1;
@@ -624,7 +629,7 @@ impl Tetrahedralization {
         ))
     }
 
-    /// Checks regularity in a parallel manner using `rayon`s `par_iter()`.
+    /// Checks regularity in parallel using [`rayon`]s.
     ///
     /// This can significantly reduce the runtime of this predicate.
     #[must_use]

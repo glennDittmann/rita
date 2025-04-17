@@ -122,13 +122,13 @@ fn find_min_max_2d(vertices: &[Vertex2], indices_to_add: &[usize]) -> (Vertex2, 
 }
 
 /// Sorts vertices along 3D Hilbert curve
-pub fn sort_along_hilbert_curve_3d(vertices: &[Vertex3], indices_to_add: &[usize]) -> Vec<usize> {
+pub fn sort_along_hilbert_curve_3d(vertices: &[Vertex3], indices_to_add: Vec<usize>) -> Vec<usize> {
     let mut curve_order = Vec::new();
 
     let mut pt_min = vertices[indices_to_add[0]];
     let mut pt_max = vertices[indices_to_add[0]];
 
-    for &ind in indices_to_add {
+    for &ind in &indices_to_add {
         if pt_min[0] > vertices[ind][0] {
             pt_min[0] = vertices[ind][0];
         }
@@ -150,8 +150,7 @@ pub fn sort_along_hilbert_curve_3d(vertices: &[Vertex3], indices_to_add: &[usize
     }
 
     let mut to_subdiv = Vec::new();
-    let indices: Vec<usize> = indices_to_add.to_vec();
-    to_subdiv.push(([0, 0, 0], 0, pt_min, pt_max, indices));
+    to_subdiv.push(([0, 0, 0], 0, pt_min, pt_max, indices_to_add));
 
     while let Some((start, dir, pt_min, pt_max, indices_to_add)) = to_subdiv.pop() {
         match indices_to_add.len().cmp(&1) {

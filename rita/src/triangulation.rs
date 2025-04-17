@@ -190,8 +190,8 @@ impl Triangulation {
 
             let mut aligned = Vec::new();
 
+            // TODO: simplify the control flow here, the break and continue can be aligned more understandably
             loop {
-                // TODO: simplify the control flow here, the break and continue can be aligned more understandably
                 if let Some(idx2) = v_idxs.pop() {
                     let v2 = self.vertices()[idx2];
 
@@ -449,10 +449,12 @@ impl Triangulation {
                 gp::orient_2d(&tri_idxs[0], &tri_idxs[1], &p)
             }
         };
+
         Ok(in_circle > 0)
     }
 
-    pub fn is_v_in_eps_powercircle(&self, v_idx: usize, tri_idx: usize) -> Result<bool> {
+    /// Panics if `self.epsilon` is not set
+    pub(crate) fn is_v_in_eps_powercircle(&self, v_idx: usize, tri_idx: usize) -> Result<bool> {
         let p = self.vertices()[v_idx];
 
         let h_p = if self.epsilon.is_some() {
