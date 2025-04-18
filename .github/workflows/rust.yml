@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: ["main"]
+    paths-ignore:  # Don't run CI when changes are only to the following paths
+    - "rita_lab/**" # There are no tests set up for cg-lab. But we can get away with that, since all crucial code is tested in their own crates.
 
 env:
   CARGO_TERM_COLOR: always
