@@ -1,0 +1,64 @@
+[package]
+name = "rita_lab"
+version = "0.1.1"
+edition = "2021"
+rust-version = "1.73.0"
+
+description = "A tool for 2D triangulations and related algorithms."
+keywords = [
+    "computer-graphics",
+    "triangulations",
+    "visualization",
+    "delaunay",
+    "geometry",
+]
+repository = "https://github.com/glennDittmann/rita"
+authors = ["Glenn Dittmann <glenn.dittmann@posteo.de>"]
+license = "MIT"
+
+[dependencies]
+rita = "0.1.6"
+vertex_clustering = "0.1.1"
+csv = "1.2.2"
+egui = "0.27.2"
+egui_plot = { version = "0.27.2", default-features = false }
+eframe = { version = "0.27.2", default-features = false, features = [
+    "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
+    "default_fonts", # Embed the default egui fonts.
+    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
+    "persistence",   # Enable restoring app state when restarting the app.
+] }
+rfd = "0.14.1"
+log = "0.4"
+rand_distr = "0.4.3"
+# You only need serde if you want app persistence:
+serde = { version = "1", features = ["derive"] }
+rand = "0.8.5"
+
+# native:
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+env_logger = "0.11.3"
+futures = "0.3.28"
+
+# web:
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4"
+
+
+#[profile.release]
+#opt-level = 2 # fast and small wasm
+
+# Optimize all dependencies even in debug builds:
+#[profile.dev.package."*"]
+#opt-level = 2
+
+
+#[patch.crates-io]
+
+# If you want to use the bleeding edge version of egui and eframe:
+# egui = { git = "https://github.com/emilk/egui", branch = "master" }
+# eframe = { git = "https://github.com/emilk/egui", branch = "master" }
+
+# If you fork https://github.com/emilk/egui you can test with:
+# egui = { path = "../egui/crates/egui" }
+# eframe = { path = "../egui/crates/eframe" }
