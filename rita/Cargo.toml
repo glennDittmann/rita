@@ -1,0 +1,28 @@
+[package]
+name = "rita"
+version = "0.1.6"
+edition = "2021"
+rust-version = "1.73.0"
+
+description = "Randomized Incremental Triangulation Algorithms"
+keywords = [
+    "computer-graphics",
+    "triangulations",
+    "delaunay",
+    "geometry",
+    "math",
+]
+repository = "https://github.com/glennDittmann/rita"
+authors = ["Glenn Dittmann <glenn.dittmann@posteo.de>"]
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+geogram_predicates = "0.2.1"
+log = "0.4"
+nalgebra = "0.33"
+rand = "0.9"
+rand_distr = "0.5"
+rayon = "1.10"
