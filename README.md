@@ -1,7 +1,7 @@
 # rita - Randomized Incremental Triangulation Algorithms
 
 [![Crates.io version](https://img.shields.io/crates/v/rita.svg)](https://crates.io/crates/rita)
-[![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-brightgreen.svg)](https://github.com/glennDittmann/rita/blob/main/src/lib.rs#L4)
+[![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-brightgreen.svg)](https://github.com/glennDittmann/rita/blob/main/src/lib.rs#L8)
 
 An implementation of (randomized) incremental weighted Delaunay triangulations in safe rust.
 

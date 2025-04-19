@@ -1,6 +1,10 @@
 //! # rita
 //!
 //! An implementation of 2D and 3D weighted delaunay triangulation via incremental algorithms.
+//!
+//! ### Features
+//! - release_no_log (default): disable logging in release builds
+//! - no_log: disable logging in all builds
 #![forbid(unsafe_code)]
 #![deny(unused, clippy::incompatible_msrv)]
 #![warn(clippy::all, clippy::missing_const_for_fn)]
