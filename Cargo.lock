@@ -2921,9 +2921,7 @@ dependencies = [
 
 [[package]]
 name = "rita"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d759985f54c105b742baf391adb5bbb9ad8347bd6d5dfce692e4649dbb1c4d7"
+version = "0.1.7"
 dependencies = [
  "anyhow",
  "geogram_predicates",
@@ -2937,6 +2935,8 @@ dependencies = [
 [[package]]
 name = "rita"
 version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd362db48b12a61811c00584f1e757deb19ce4953c0931ae1edc393a77669a64"
 dependencies = [
  "anyhow",
  "geogram_predicates",
@@ -2961,7 +2961,7 @@ dependencies = [
  "rand 0.8.5",
  "rand_distr 0.4.3",
  "rfd",
- "rita 0.1.6",
+ "rita 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "vertex_clustering",
  "wasm-bindgen-futures",

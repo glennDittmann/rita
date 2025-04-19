@@ -17,7 +17,7 @@ authors = ["Glenn Dittmann <glenn.dittmann@posteo.de>"]
 license = "MIT"
 
 [dependencies]
-rita = "0.1.6"
+rita = "0.1.7"
 vertex_clustering = "0.1.1"
 csv = "1.2.2"
 egui = "0.27.2"
