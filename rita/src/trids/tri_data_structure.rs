@@ -25,6 +25,7 @@ const INACTIVE: usize = usize::MAX;
 // such that `hedge3 = next(he2)`
 //
 // such that `hedge1 = next(he3)`
+#[derive(Debug)]
 pub struct TriDataStructure {
     /// The first node is stored, the last can be obtained via `% 3`
     pub(crate) hedge_starting_nodes: Vec<VertexNode>,

@@ -45,6 +45,7 @@ pub enum ExtendedTetrahedron {
 /// println!("{:?}", result);
 /// assert_eq!(tetrahedralization.par_is_regular(false), 1.0);
 /// ```
+#[derive(Debug)]
 pub struct Tetrahedralization {
     epsilon: Option<f64>,
     tds: TetDataStructure,
@@ -837,6 +838,26 @@ impl std::fmt::Display for Tetrahedralization {
             self.vertices.len(),
             self.tds.num_tets()
         )
+    }
+}
+
+#[cfg(feature = "arbitrary")]
+impl<'a> arbitrary::Arbitrary<'a> for Tetrahedralization {
+    fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
+        let vertices_len = u.arbitrary_len::<[[f64; 3]; 4]>()?;
+        let mut tetrahedralization = Tetrahedralization::new_with_vert_capacity(*u.choose(&[Some(1e-9), Some(1e-10), Some(1e-11), Some(1e-12), None])?, vertices_len);
+
+        let mut vertices = u.arbitrary::<Vec<[f64; 3]>>()?;
+        // make sure it's not empty
+        vertices.push(u.arbitrary::<[f64; 3]>()?);
+
+        let _ = tetrahedralization.insert_vertices(
+            &vertices,
+            None,
+            *u.choose(&[true, false])?
+        );
+
+        Ok(tetrahedralization)
     }
 }
 

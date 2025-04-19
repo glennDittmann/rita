@@ -48,6 +48,7 @@ pub(crate) const NEIGHBOR_HALFEDGE: [[(usize, usize); 3]; 4] = [
 // such that `tri2 = (i, i+3, i+1)`
 //
 // such that `tri3 = (i, i+1, i+2)`
+#[derive(Debug)]
 pub struct TetDataStructure {
     pub tet_nodes: Vec<VertexNode>,
     /// Opposite half triangle index of this tet

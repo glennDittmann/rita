@@ -61,6 +61,7 @@ pub(crate) enum Flip {
 ///
 /// assert_eq!(triangulation.par_is_regular(false), 1.0);
 /// ```
+#[derive(Debug)]
 pub struct Triangulation {
     pub tds: TriDataStructure,
     pub vertices: Vec<Vertex2>,
@@ -300,7 +301,7 @@ impl Triangulation {
     pub fn insert_vertex(
         &mut self,
         v: [f64; 2],
-        weight: f64,
+        weight: Option<f64>,
         near_to: Option<usize>,
     ) -> Result<()> {
         if self.tds.num_tris() == 0 {
@@ -312,7 +313,7 @@ impl Triangulation {
         let idx_to_insert = self.vertices.len();
         self.vertices.push(v);
         if let Some(weights) = &mut self.weights {
-            weights.push(weight);
+            weights.push(weight.unwrap_or(0.0));
         }
 
         let near_to_idx: usize;
@@ -1187,6 +1188,26 @@ impl PartialEq for Triangulation {
 }
 
 impl Eq for Triangulation {}
+
+#[cfg(feature = "arbitrary")]
+impl<'a> arbitrary::Arbitrary<'a> for Triangulation {
+    fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
+        let vertices_len = u.arbitrary_len::<[[f64; 2]; 3]>()?;
+        let mut triangulation = Triangulation::new_with_vert_capacity(*u.choose(&[Some(1e-9), Some(1e-10), Some(1e-11), Some(1e-12), None])?, vertices_len);
+
+        let mut vertices = u.arbitrary::<Vec<[f64; 2]>>()?;
+        // make sure it's not empty
+        vertices.push(u.arbitrary::<[f64; 2]>()?);
+
+        let _ = triangulation.insert_vertices(
+            &vertices,
+            None,
+            *u.choose(&[true, false])?
+        );
+
+        arbitrary::Result::Ok(triangulation)
+    }
+}
 
 #[cfg(test)]
 mod tests {

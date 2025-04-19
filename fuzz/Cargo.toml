@@ -1,0 +1,29 @@
+[package]
+name = "rita-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.rita]
+path = ".."
+features = ["arbitrary"]
+
+[[bin]]
+name = "fuzz_triangulation"
+path = "fuzz_targets/fuzz_triangulation.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_tetrahedralization"
+path = "fuzz_targets/fuzz_tetrahedralization.rs"
+test = false
+doc = false
+bench = false
