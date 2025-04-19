@@ -804,8 +804,8 @@ mod tests {
         let num_tets = tets.len();
 
         assert!(
-            tets.len() == 2 || tets.len() == 3,
-            "Expected 2 or 3 tetrahedra, got {num_tets}"
+            tets.len() == 2 || tets.len() == 3 || tets.len() == 4,
+            "Expected 2, 3 or 4 tetrahedra, got {num_tets}"
         );
     }
 

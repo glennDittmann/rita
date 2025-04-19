@@ -488,7 +488,7 @@ impl Triangulation {
         let mut regular = true;
         let mut num_violated_triangles = 0;
 
-        for tri_idx in 0..self.tds().num_tris() {
+        for tri_idx in 0..self.tds().num_tris() + self.tds().num_deleted_tris {
             // Skip triangles that have been deleted by 3->1 flips
             if self
                 .tds()
@@ -558,8 +558,9 @@ impl Triangulation {
     #[must_use]
     pub fn is_regular_p(&self, with_ignored_vertices: bool) -> f64 {
         let num_tris = self.tds().num_tris();
+        let num_deleted_tris = self.tds().num_deleted_tris;
 
-        let num_violated_tris: f64 = (0..num_tris)
+        let num_violated_tris: f64 = (0..num_tris + num_deleted_tris)
             .into_par_iter()
             .map(|tri_idx| {
                 // Skip triangles that have been deleted by 3->1 flips
@@ -648,7 +649,7 @@ impl Triangulation {
             vec![0.0; vertices.len()]
         };
 
-        for tri_idx in 0..self.tds().num_tris() {
+        for tri_idx in 0..self.tds().num_tris() + self.tds().num_deleted_tris {
             // Skip triangles that have been deleted by 3->1 flips
             if self
                 .tds()
@@ -873,7 +874,7 @@ impl Triangulation {
     /// connected to the point at infinity.
     pub fn tris(&self) -> Vec<Triangle2> {
         // todo: handle the results gracefully, instead of unwrapping (which is safe here though)
-        (0..self.tds().num_tris())
+        (0..self.tds().num_tris() + self.tds().num_deleted_tris)
             .filter_map(|tri_idx| {
                 let tri = self.tds().get_tri(tri_idx).ok()?;
 
@@ -1135,22 +1136,45 @@ mod tests {
 
     const NUM_VERTICES_LIST: [usize; 7] = [3, 5, 10, 50, 100, 500, 1000];
 
+    const EXAMPLE_VERTICES: [[f64; 2]; 10] = [
+        [0.0, 0.0],
+        [-0.5, 1.0],
+        [0.0, 2.5],
+        [2.0, 3.0],
+        [4.0, 2.5],
+        [5.0, 1.5],
+        [4.5, 0.5],
+        [2.5, -0.5],
+        [1.5, 1.5],
+        [3.0, 1.0],
+    ];
+    const EXAMPLE_WEIGHTS: [f64; 10] = [
+        0.681, 0.579, 0.5625, 0.86225, 10.0, 0.472, 0.5865, 0.59625, 0.51225, 7.0,
+    ];
+
     #[test]
     fn test_get_tris() {
-        let vertices = sample_vertices_2d(4, None);
+        // Test unweighted case
         let mut triangulation = Triangulation::new(None);
-
         triangulation
-            .insert_vertices(&vertices, None, true)
+            .insert_vertices(&EXAMPLE_VERTICES, None, true)
             .unwrap();
 
         let tris = triangulation.tris();
         let num_tris = tris.len();
 
-        assert!(
-            tris.len() == 2 || tris.len() == 3,
-            "Expected 2 or 3 triangles, got {num_tris}"
-        );
+        assert!(tris.len() == 10, "Expected 10 triangles, got {num_tris}");
+
+        // Test weighted case
+        let mut triangulation = Triangulation::new(None);
+        triangulation
+            .insert_vertices(&EXAMPLE_VERTICES, Some(EXAMPLE_WEIGHTS.to_vec()), true)
+            .unwrap();
+
+        let tris = triangulation.tris();
+        let num_tris = tris.len();
+
+        assert!(tris.len() == 8, "Expected 8 triangles, got {num_tris}");
     }
 
     #[test]
