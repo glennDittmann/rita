@@ -64,23 +64,12 @@ pub fn show(
 }
 
 fn draw_triangles(triangulation_data: &mut TriangulationData, plot_ui: &mut PlotUi) {
-    for i in 0..triangulation_data.triangulation.tds().num_tris()
-        + triangulation_data.triangulation.tds().num_deleted_tris
-    {
-        let tri = triangulation_data.triangulation.tds().get_tri(i).unwrap();
-        let [n0, n1, n2] = tri.nodes();
-
-        if !tri.is_conceptual() && n0.idx().is_some() && n1.idx().is_some() && n2.idx().is_some() {
-            let v0 = triangulation_data.vertices[n0.idx().unwrap()];
-            let v1 = triangulation_data.vertices[n1.idx().unwrap()];
-            let v2 = triangulation_data.vertices[n2.idx().unwrap()];
-
-            plot_ui.polygon(
-                Polygon::new(vec![v0, v1, v2])
-                    .stroke(Stroke::new(1.0, TRI_GREEN))
-                    .width(1.0),
-            );
-        }
+    for [a, b, c] in triangulation_data.triangulation.tris() {
+        plot_ui.polygon(
+            Polygon::new(vec![a, b, c])
+                .stroke(Stroke::new(1.0, TRI_GREEN))
+                .width(1.0),
+        );
     }
 }
 

@@ -36,31 +36,24 @@ pub fn measure_time<F: FnOnce() -> T, T>(f: F) -> (T, u128) {
 /// Get a predefined set of vertices.
 pub fn get_example_vertices() -> Vec<Vertex2> {
     // points for the Running Example
-    // vec![
-    //     [0.0, 0.0],
-    //     [-0.5, 1.0],
-    //     [0.0, 2.5],
-    //     [2.0, 3.0],
-    //     [4.0, 2.5],
-    //     [5.0, 1.5],
-    //     [4.5, 0.5],
-    //     [2.5, -0.5],
-    //     [1.5, 1.5],
-    //     [3.0, 1.0],
-    // ]
-
-    // points for the BW, ES example in the State of the Art chapter
     vec![
         [0.0, 0.0],
-        [4.0, 0.0],
-        [3.8, 2.0],
-        [2.2, 2.4],
-        [1.0, 2.5],
-        [0.3, 2.0],
-        [0.6, 1.0],
-        [1.0, 0.4],
-        [3.4, 0.4],
-        [1.8, 1.5],
+        [-0.5, 1.0],
+        [0.0, 2.5],
+        [2.0, 3.0],
+        [4.0, 2.5],
+        [5.0, 1.5],
+        [4.5, 0.5],
+        [2.5, -0.5],
+        [1.5, 1.5],
+        [3.0, 1.0],
+    ]
+}
+
+/// Get a predefined set of weights.
+pub fn get_example_weights() -> Vec<f64> {
+    vec![
+        0.681, 0.579, 0.5625, 0.86225, 10.0, 0.472, 0.5865, 0.59625, 0.51225, 7.0,
     ]
 }
 

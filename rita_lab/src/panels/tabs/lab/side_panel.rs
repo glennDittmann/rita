@@ -7,7 +7,10 @@ use vertex_clustering::VertexClusterer2;
 
 use crate::{
     types::{AppSettings, FileHandler, TriangulationData},
-    utils::{self, execute, measure_time, sample_vertices_2d, sample_weights, scale_vertices_2d},
+    utils::{
+        self, execute, get_example_weights, measure_time, sample_vertices_2d, sample_weights,
+        scale_vertices_2d,
+    },
 };
 
 #[derive(Debug, PartialEq)]
@@ -135,7 +138,7 @@ fn vertex_generator(
                         }
                         VertexGenerator::RunningExample => {
                             triangulation_data.vertices = utils::get_example_vertices();
-                            triangulation_data.weights = None;
+                            triangulation_data.weights = Some(get_example_weights());
                         }
                         VertexGenerator::FromFile => {
                             triangulation_data.vertices =
