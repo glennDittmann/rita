@@ -1212,7 +1212,7 @@ impl<'a> arbitrary::Arbitrary<'a> for Triangulation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{sample_vertices_2d, sample_weights};
+    use rita_test_utils::{sample_vertices_2d, sample_weights};
 
     fn verify_triangulation(triangulation: &Triangulation) {
         let regularity = triangulation.par_is_regular(false);

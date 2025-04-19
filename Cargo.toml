@@ -1,4 +1,4 @@
 [workspace]
 resolver = "2"
-members = ["rita", "rita_lab"]
+members = ["rita", "rita_lab", "rita_test_utils"]
 exclude = ["fuzz"]

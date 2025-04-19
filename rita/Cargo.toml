@@ -29,5 +29,4 @@ rayon = "1.10"
 arbitrary = { version = "1.4", optional = true }
 
 [dev-dependencies]
-rand = "0.9"
-rand_distr = "0.5"
+rita_test_utils = { version = "0.1", path = "../rita_test_utils" }

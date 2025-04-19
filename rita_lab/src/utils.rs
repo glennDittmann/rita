@@ -1,9 +1,8 @@
 use egui::Ui;
-use rand::{distributions::Uniform, prelude::Distribution};
-use rand_distr::Normal;
-use std::{future::Future, ops::RangeInclusive, time::Instant};
+use std::{future::Future, time::Instant};
 
 use crate::types::Vertex2;
+pub use rita_test_utils::{sample_vertices_2d, sample_weights};
 
 /// Part of the side panel that shows the egui credits.
 pub fn egui_credits(ui: &mut Ui) {
@@ -71,43 +70,6 @@ pub fn read_vertices_from_string(input: &str) -> Vec<Vertex2> {
     let vertices = reader.deserialize().map(|record| record.unwrap()).collect();
 
     vertices
-}
-
-/// Samples `n` vertices in 2D space from the [standard] distribution.
-///
-/// If no range is specified, the unit-square centered around the origin is used, i.e. `[-0.5, 0.5]`.
-pub fn sample_vertices_2d(n: usize, range: Option<RangeInclusive<f64>>) -> Vec<[f64; 2]> {
-    let mut rng = rand::thread_rng();
-    let range = range.unwrap_or(-0.5..=0.5);
-    let uniform = Uniform::from(range);
-
-    let mut vertices: Vec<[f64; 2]> = Vec::with_capacity(n);
-    for _ in 0..n {
-        let x = uniform.sample(&mut rng);
-        let y = uniform.sample(&mut rng);
-        vertices.push([x, y]);
-    }
-
-    vertices
-}
-
-/// Samples `n` weights from a normal distribution.
-///
-/// The default parametrization is `μ = 0.0` and `σ = 0.005`.
-///
-/// Parameters can be passed as an optional tuple `(μ, σ)`.
-pub fn sample_weights(n: usize, params: Option<(f64, f64)>) -> Vec<f64> {
-    let mut rng = rand::thread_rng();
-    let (mean, std_dev) = params.unwrap_or((0.0, 0.005));
-    let normal = Normal::new(mean, std_dev).unwrap();
-
-    let mut weights: Vec<f64> = Vec::with_capacity(n);
-    for _ in 0..n {
-        let w: f64 = normal.sample(&mut rng);
-        weights.push(w);
-    }
-
-    weights
 }
 
 pub fn bbox_2d(vertices: &[Vertex2]) -> (Vertex2, Vertex2) {

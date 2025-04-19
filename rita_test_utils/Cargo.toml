@@ -1,0 +1,8 @@
+[package]
+name = "rita_test_utils"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand = "0.9"
+rand_distr = "0.5"

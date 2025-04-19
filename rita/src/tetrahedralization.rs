@@ -864,7 +864,7 @@ impl<'a> arbitrary::Arbitrary<'a> for Tetrahedralization {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{sample_vertices_3d, sample_weights};
+    use rita_test_utils::{sample_vertices_3d, sample_weights};
 
     fn verify_tetrahedralization(tetrahedralization: &Tetrahedralization) {
         let (_, regularity) = tetrahedralization.is_regular().unwrap(); // a triangulation will always be regular for the used vertices, i.e. without ignored
