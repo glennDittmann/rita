@@ -2,7 +2,7 @@
 name = "rita"
 version = "0.1.7"
 edition = "2021"
-rust-version = "1.73.0"
+rust-version = "1.75.0"
 
 description = "2D and 3D Randomized Incremental Triangulation Algorithms"
 keywords = [
@@ -26,6 +26,7 @@ geogram_predicates = "0.2.1"
 log = "0.4"
 nalgebra = "0.33"
 rayon = "1.10"
+arbitrary = { version = "1.4", optional = true }
 
 [dev-dependencies]
 rand = "0.9"
