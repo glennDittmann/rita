@@ -11,7 +11,7 @@ cargo-fuzz = true
 libfuzzer-sys = "0.4"
 
 [dependencies.rita]
-path = ".."
+path = "../rita"
 features = ["arbitrary"]
 
 [[bin]]

@@ -215,6 +215,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arbitrary"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dde20b3d026af13f561bdd0f15edf01fc734f0dafcedbaf42bba506a9517f223"
+
+[[package]]
 name = "arboard"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2935,6 +2941,7 @@ name = "rita"
 version = "0.1.7"
 dependencies = [
  "anyhow",
+ "arbitrary",
  "geogram_predicates",
  "log",
  "nalgebra",
