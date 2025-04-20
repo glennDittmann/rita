@@ -1,7 +1,7 @@
 use crate::{utils::types::HedgeIteratorIdx, VertexNode};
 
 use super::{hedge_iterator::HedgeIterator, tri_iterator::TriIterator};
-use anyhow::{Ok as AnyOk, Result as AnyResult};
+use anyhow::{Ok as HowOk, Result as HowResult};
 use geogram_predicates as gp;
 
 const INACTIVE: usize = usize::MAX;
@@ -68,7 +68,7 @@ impl TriDataStructure {
     }
 
     /// Insert an initial triangle into the triangulation.
-    pub fn add_init_tri(&mut self, v_idxs: [usize; 3]) -> AnyResult<[TriIterator; 4]> {
+    pub fn add_init_tri(&mut self, v_idxs: [usize; 3]) -> HowResult<[TriIterator; 4]> {
         if self.num_tris() > 0 {
             return Err(anyhow::Error::msg(
                 "Triangulation already contains triangles!",
@@ -104,7 +104,7 @@ impl TriDataStructure {
         self.hedge_twins.push(hedge1i);
 
         // Return the four new triangle iterators
-        AnyOk([
+        HowOk([
             TriIterator::new(self, 0),
             TriIterator::new(self, 1),
             TriIterator::new(self, 2),
@@ -113,7 +113,7 @@ impl TriDataStructure {
     }
 
     /// Insert a vertex `d` into an existing triangle `abc`; called the `1 -> 3 flip`, as it deletes the triangle and creates three new ones.
-    pub fn flip_1_to_3(&mut self, idx_to_remove: usize, v_idx: usize) -> AnyResult<[TriIterator; 3]> {
+    pub fn flip_1_to_3(&mut self, idx_to_remove: usize, v_idx: usize) -> HowResult<[TriIterator; 3]> {
         if idx_to_remove > self.num_tris() + self.num_deleted_tris {
             return Err(anyhow::Error::msg("Triangle index out of bounds!"));
         }
@@ -149,7 +149,7 @@ impl TriDataStructure {
         self.hedge_twins.push(hedge_da);
         self.hedge_twins.push(hedge_cd);
 
-        AnyOk([
+        HowOk([
             TriIterator::new(self, idx_to_remove),
             TriIterator::new(self, self.num_tris() - 2),
             TriIterator::new(self, self.num_tris() - 1),
@@ -157,7 +157,7 @@ impl TriDataStructure {
     }
 
     /// Flips an edge that internally connects two triangles to an edge that connects the other two triangles.
-    pub fn flip_2_to_2(&mut self, idx: usize) -> AnyResult<[TriIterator; 2]> {
+    pub fn flip_2_to_2(&mut self, idx: usize) -> HowResult<[TriIterator; 2]> {
         let hedge_twin_idx = self.hedge_twins[idx];
 
         let tri1_idx = idx / 3;
@@ -214,7 +214,7 @@ impl TriDataStructure {
         self.hedge_twins[hedge_cb] = hedge_bc;
         self.hedge_twins[hedge_dc] = hedge_cd;
 
-        AnyOk([
+        HowOk([
             TriIterator::new(self, tri1_idx),
             TriIterator::new(self, tri2_idx),
         ])
@@ -232,7 +232,7 @@ impl TriDataStructure {
         idxs_to_flip: [usize; 3],
         reflex_node_idx: usize,
         vertices: &[[f64; 2]],
-    ) -> AnyResult<TriIterator> {
+    ) -> HowResult<TriIterator> {
         // Each of the three triangles has one edge that does not contain the reflex node. i.e. is not shared with the other two triangles
         // these edges form the new triangle
         // we will find these edges (compare with the reflex node idx) and also take the edges respective twin hedge idxs
@@ -324,7 +324,7 @@ impl TriDataStructure {
         self.num_tris -= 2;
         self.num_deleted_tris += 2;
 
-        AnyOk(TriIterator::new(self, tri0_idx))
+        HowOk(TriIterator::new(self, tri0_idx))
     }
 
     /// Helper function for 3->1 flip. Sets a triangle to inactive.
@@ -348,22 +348,22 @@ impl TriDataStructure {
     }
 
     /// Retrieve a half-edge iterator by index.
-    pub fn get_hedge(&self, idx: usize) -> AnyResult<HedgeIterator> {
+    pub fn get_hedge(&self, idx: usize) -> HowResult<HedgeIterator> {
         if idx >= self.hedge_starting_nodes.len() {
             return Err(anyhow::Error::msg("Hedge index out of bounds"));
         }
 
-        AnyOk(HedgeIterator::new(self, idx))
+        HowOk(HedgeIterator::new(self, idx))
     }
 
     /// Retrieve a half-tri iterator by index.
-    pub fn get_tri(&self, idx: usize) -> AnyResult<TriIterator> {
+    pub fn get_tri(&self, idx: usize) -> HowResult<TriIterator> {
         if idx >= self.num_tris() + self.num_deleted_tris {
             // - num_deleted_tris because we have to account for the deleted, that basically clog up array indices
             return Err(anyhow::Error::msg("Tri index out of bounds!"));
         }
 
-        AnyOk(TriIterator::new(self, idx))
+        HowOk(TriIterator::new(self, idx))
     }
 
     /// Get the number of triangles in the triangulation.
