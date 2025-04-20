@@ -1,5 +1,5 @@
 use egui::{Color32, Context, Stroke};
-use egui_plot::{Legend, Plot, PlotResponse, PlotUi, Points, Polygon};
+use egui_plot::{Legend, Plot, PlotPoint, PlotPoints, PlotResponse, PlotUi, Points, Polygon};
 use vertex_clustering::VertexClusterer2;
 
 use crate::types::{PlotSettings, TriangulationData, Vertex2, ORANGE, TRI_GREEN};
@@ -74,11 +74,10 @@ fn draw_triangles(triangulation_data: &mut TriangulationData, plot_ui: &mut Plot
 }
 
 /// Create the plot markers for the input vertices of the triangulation
-fn vertex_markers(plot_settings: &mut PlotSettings, vertices: &[Vertex2]) -> Points {
+fn vertex_markers<'p>(plot_settings: &mut PlotSettings, vertices: &'p [Vertex2]) -> Points<'p> {
     let plot_points: Vec<[f64; 2]> = vertices.iter().map(|&v| [v[0], v[1]]).collect();
 
-    let mut points = Points::new(plot_points)
-        .name("Vertices")
+    let mut points = Points::new("Vertices", plot_points)
         .filled(plot_settings.marker_style.fill_markers)
         .radius(plot_settings.marker_style.marker_radius);
 
@@ -89,11 +88,10 @@ fn vertex_markers(plot_settings: &mut PlotSettings, vertices: &[Vertex2]) -> Poi
 }
 
 /// Create the plot markers for the input vertices of the triangulation
-fn scaled_vertex_markers(plot_settings: &mut PlotSettings, vertices: &[Vertex2]) -> Points {
+fn scaled_vertex_markers<'p>(plot_settings: &mut PlotSettings, vertices: &'p [Vertex2]) -> Points<'p> {
     let plot_points: Vec<[f64; 2]> = vertices.iter().map(|&v| [v[0], v[1]]).collect();
 
-    Points::new(plot_points)
-        .name("Scaled Vertices")
+    Points::new("Scaled Vertices", plot_points)
         .filled(plot_settings.marker_style.fill_markers)
         .radius(plot_settings.marker_style.marker_radius)
         .color(ORANGE)
@@ -135,7 +133,7 @@ fn draw_grid(grid_sampler: &VertexClusterer2, plot_ui: &mut PlotUi, color: Color
             ];
 
             plot_ui.polygon(
-                Polygon::new(vec![bottom_left, bottom_right, top_right, top_left])
+                Polygon::new("", vec![bottom_left, bottom_right, top_right, top_left])
                     .stroke(Stroke::new(1.0, color))
                     .width(1.0),
             );
