@@ -122,13 +122,13 @@ fn find_min_max_2d(vertices: &[Vertex2], indices_to_add: &[usize]) -> (Vertex2, 
 }
 
 /// Sorts vertices along 3D Hilbert curve
-pub fn sort_along_hilbert_curve_3d(vertices: &[Vertex3], indices_to_add: &[usize]) -> Vec<usize> {
+pub fn sort_along_hilbert_curve_3d(vertices: &[Vertex3], indices_to_add: Vec<usize>) -> Vec<usize> {
     let mut curve_order = Vec::new();
 
     let mut pt_min = vertices[indices_to_add[0]];
     let mut pt_max = vertices[indices_to_add[0]];
 
-    for &ind in indices_to_add {
+    for &ind in &indices_to_add {
         if pt_min[0] > vertices[ind][0] {
             pt_min[0] = vertices[ind][0];
         }
@@ -150,8 +150,7 @@ pub fn sort_along_hilbert_curve_3d(vertices: &[Vertex3], indices_to_add: &[usize
     }
 
     let mut to_subdiv = Vec::new();
-    let indices: Vec<usize> = indices_to_add.to_vec();
-    to_subdiv.push(([0, 0, 0], 0, pt_min, pt_max, indices));
+    to_subdiv.push(([0, 0, 0], 0, pt_min, pt_max, indices_to_add));
 
     while let Some((start, dir, pt_min, pt_max, indices_to_add)) = to_subdiv.pop() {
         match indices_to_add.len().cmp(&1) {
@@ -165,11 +164,12 @@ pub fn sort_along_hilbert_curve_3d(vertices: &[Vertex3], indices_to_add: &[usize
                     [[Vec::new(), Vec::new()], [Vec::new(), Vec::new()]],
                 ];
 
-                for &ind in indices_to_add.iter() {
+                for ind in indices_to_add {
                     let vert = vertices[ind];
-                    let xind = if vert[0] < sep_x { 0 } else { 1 } as usize;
-                    let yind = if vert[1] < sep_y { 0 } else { 1 } as usize;
-                    let zind = if vert[2] < sep_z { 0 } else { 1 } as usize;
+                    // FIXME: this needs an explanation
+                    let xind = usize::from(vert[0] >= sep_x);
+                    let yind = usize::from(vert[1] >= sep_y);
+                    let zind = usize::from(vert[2] >= sep_z);
                     sep_ind[xind][yind][zind].push(ind);
                 }
 
@@ -208,6 +208,7 @@ pub fn sort_along_hilbert_curve_3d(vertices: &[Vertex3], indices_to_add: &[usize
                         ],
                         vec_inds,
                     ));
+
                     sep_subind[next_modif[i]] = 1 - sep_subind[next_modif[i]];
                     start_ind[next_modif[i]] = 1 - start_ind[next_modif[i]];
                     start_ind[dir[i]] = 1 - start_ind[dir[i]];

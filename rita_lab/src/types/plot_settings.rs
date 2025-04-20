@@ -1,8 +1,9 @@
 use egui::Color32;
 use egui_plot::LineStyle;
+use serde::{Deserialize, Serialize};
 
 /// Global plots settings.
-#[derive(PartialEq)]
+#[derive(PartialEq, Deserialize, Serialize)]
 pub struct PlotSettings {
     pub line_style: LineStyle,
     pub marker_style: MarkerStyle,
@@ -25,7 +26,7 @@ impl Default for PlotSettings {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Deserialize, Serialize)]
 pub struct MarkerStyle {
     pub fill_markers: bool,
     pub marker_radius: f32,

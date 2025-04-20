@@ -120,19 +120,23 @@ fn vertex_generator(
             // Generate and delete buttons
             ui.horizontal(|ui| {
                 if ui.button("Generate vertices").clicked() {
+                    const VERTEX_RANGE: RangeInclusive<f64> = RangeInclusive::new(1.0, 2.0);
+
                     triangulation_data.metrics.reset();
                     triangulation_data.grid_sampler = None;
                     match triangulation_data.vertex_generator {
                         VertexGenerator::Random => {
                             triangulation_data.vertices = sample_vertices_2d(
                                 triangulation_data.number_vertices,
-                                Some(RangeInclusive::new(1.0, 2.0)),
+                                Some(VERTEX_RANGE),
                             );
                             triangulation_data.weights = None;
                         }
                         VertexGenerator::RandomWeighted => {
-                            triangulation_data.vertices =
-                                sample_vertices_2d(triangulation_data.number_vertices, None);
+                            triangulation_data.vertices = sample_vertices_2d(
+                                triangulation_data.number_vertices,
+                                Some(VERTEX_RANGE),
+                            );
                             triangulation_data.weights =
                                 Some(sample_weights(triangulation_data.number_vertices, None));
                         }
@@ -219,15 +223,15 @@ fn triangulation_computer(
         ui.vertical(|ui| {
             // Set the epsilon parameter
             ui.horizontal(|ui| {
-                let (param_name, param_range, drag_speed) = ("Epsilon", 0.0..=100.0, 0.1);
+                let (param_name, param_range, drag_speed) = ("Epsilon", 0.0..=50.0, 0.05);
                 ui.add(
                     egui::Slider::new(&mut triangulation_data.epsilon, param_range)
-                        .prefix(format!("{}: ", param_name))
+                        .prefix(format!("{param_name}: "))
                         .drag_value_speed(drag_speed),
                 );
                 if ui
                     .button("↺")
-                    .on_hover_text(format!("Reset {} to 0.0", param_name))
+                    .on_hover_text(format!("Reset {param_name} to 0.0"))
                     .clicked()
                 {
                     triangulation_data.epsilon = 0.0;
@@ -256,8 +260,8 @@ fn triangulation_computer(
                         )
                     });
 
-                    log::info!("Triangulation took {} μs", runtime_micros);
-                    triangulation_data.metrics.runtime = runtime_micros as f64;
+                    log::info!("Triangulation took {runtime_micros} μs");
+                    triangulation_data.metrics.runtime = (runtime_micros / 10) as f64 / 100.0;
 
                     let (regular, _) = triangulation_data.triangulation.is_regular().unwrap();
                     triangulation_data.metrics.regular = regular;
@@ -318,7 +322,7 @@ fn triangle_list(ui: &mut Ui, triangulation_data: &TriangulationData) {
                     .max_height(200.0)
                     .show(ui, |ui| {
                         for i in 0..triangulation_data.triangulation.tds().num_tris() {
-                            ui.collapsing(format!("Triangle {}", i), |ui| {
+                            ui.collapsing(format!("Triangle {i}"), |ui| {
                                 ui.vertical(|ui| {
                                     let tri =
                                         triangulation_data.triangulation.tds().get_tri(i).unwrap();

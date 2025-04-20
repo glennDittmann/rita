@@ -16,7 +16,7 @@ use crate::{
     },
     VertexNode,
 };
-use anyhow::{Ok, Result};
+use anyhow::{Ok as HowOk, Result as HowResult};
 use geogram_predicates as gp;
 use log::error;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -30,7 +30,8 @@ pub enum TriangleExtended {
 }
 
 #[derive(Debug)]
-pub enum Flip {
+pub(crate) enum Flip {
+    #[allow(unused)]
     OneToThree,
     TwoToTwo,
     ThreeToOne((usize, usize)), // this flip saves the index of the third triangle and the reflex vertex that is part of the reflex wedge as (third tri idx, reflex vertex idx)
@@ -58,23 +59,29 @@ pub enum Flip {
 /// let mut triangulation = Triangulation::new(None); // specify epsilon here
 /// let result = triangulation.insert_vertices(&vertices, Some(weights), true);  // last parameter toggles spatial sorting
 ///
-/// assert_eq!(triangulation.is_regular_p(false), 1.0);
+/// assert_eq!(triangulation.par_is_regular(false), 1.0);
 /// ```
+#[derive(Debug)]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct Triangulation {
     pub tds: TriDataStructure,
     pub vertices: Vec<Vertex2>,
-    pub weights: Vec<f64>,
+    /// The weights of the vertices, `Some` if the vertices are weighted
+    pub weights: Option<Vec<f64>>,
     time_flipping: u128,
     time_inserting: u128,
     time_walking: u128,
-    weighted: bool,
     last_inserted_triangle: Option<usize>,
     epsilon: Option<f64>,
-    /// Vertices that are part of the triangulation (i.e. the input point set without redundant and ignored vertices).
+    /// Vertices that are part of the triangulation
+    /// (i.e. the input point set without redundant and ignored vertices).
+    #[cfg_attr(feature = "arbitrary", arbitrary(default))]
     pub used_vertices: Vec<usize>,
     /// Vertices that are not part of the triangulation, due to their weight.
+    #[cfg_attr(feature = "arbitrary", arbitrary(default))]
     redundant_vertices: Vec<usize>,
     /// Vertices that are not part of the triangulation, due to epsilon.
+    #[cfg_attr(feature = "arbitrary", arbitrary(default))]
     ignored_vertices: Vec<usize>,
 }
 
@@ -84,16 +91,53 @@ impl Default for Triangulation {
     }
 }
 
+/// Create a new [`Triangulation`] from vertices with optional weights and epsilon.
+///
+/// ## Example
+/// ```
+/// # use rita::triangulation;
+/// triangulation!(&[[0.0, 9.9], [6.9, 12.3], [5.2, 3.33]]);
+/// // with epsilon
+/// triangulation!(&[[0.0, 9.9], [6.9, 12.3], [5.2, 3.33]], epsilon = 1e-9);
+/// // with weights
+/// triangulation!(&[[0.0, 9.9], [6.9, 12.3], [5.2, 3.33]], vec![0.2, 1.3]);
+/// // with weights and epsilon
+/// triangulation!(&[[0.0, 9.9], [6.9, 12.3], [5.2, 3.33]], vec![0.2, 1.3], epsilon = 1e-9);
+/// ```
+#[macro_export]
+macro_rules! triangulation {
+    ($vertices:expr) => {{
+        let mut triangulation = $crate::Triangulation::new_with_vert_capacity(None, $vertices.len());
+        let _ = triangulation.insert_vertices($vertices, None, true);
+        triangulation
+    }};
+    ($vertices:expr, epsilon = $epsilon:expr) => {{
+        let mut triangulation = $crate::Triangulation::new_with_vert_capacity(Some($epsilon), $vertices.len());
+        let _ = triangulation.insert_vertices($vertices, None, true);
+        triangulation
+    }};
+    // with weights
+    ($vertices:expr, $weights:expr) => {{
+        let mut triangulation = $crate::Triangulation::new_with_vert_capacity(None, $vertices.len());
+        let _ = triangulation.insert_vertices($vertices, Some($weights), true);
+        triangulation
+    }};
+    ($vertices:expr, $weights:expr, epsilon = $epsilon:expr) => {{
+        let mut triangulation = $crate::Triangulation::new_with_vert_capacity(Some($epsilon), $vertices.len());
+        let _ = triangulation.insert_vertices($vertices, Some($weights), true);
+        triangulation
+    }};
+}
+
 impl Triangulation {
     pub const fn new(epsilon: Option<f64>) -> Self {
         Self {
             tds: TriDataStructure::new(),
             vertices: Vec::new(),
-            weights: Vec::new(),
+            weights: None,
             time_flipping: 0,
             time_inserting: 0,
             time_walking: 0,
-            weighted: false,
             last_inserted_triangle: None,
             epsilon,
             used_vertices: Vec::new(),
@@ -102,17 +146,38 @@ impl Triangulation {
         }
     }
 
+    /// Create a new `Triangulation` with a pre-allocated capacity for vertices
+    pub fn new_with_vert_capacity(epsilon: Option<f64>, capacity: usize) -> Self {
+        Self {
+            tds: TriDataStructure::new(),
+            vertices: Vec::with_capacity(capacity),
+            weights: None,
+            time_flipping: 0,
+            time_inserting: 0,
+            time_walking: 0,
+            last_inserted_triangle: None,
+            epsilon,
+            used_vertices: Vec::new(),
+            ignored_vertices: Vec::new(),
+            redundant_vertices: Vec::new(),
+        }
+    }
+
+    pub(crate) const fn weighted(&self) -> bool {
+        self.weights.is_some()
+    }
+
     /// Utility function for locate via vis walk.
     ///
     /// Checks all edges for a triangle to go to the next tri or return None, i.e. stop locate at current tri.
     #[must_use]
-    pub fn choose_hedge<'a>(
+    fn choose_hedge<'a>(
         &self,
         v_hedges: &Vec<HedgeIterator<'a>>,
         v: &[f64; 2],
     ) -> Option<HedgeIterator<'a>> {
         for hedge in v_hedges {
-            // TODO: note for this iter to work, HedgeIterator needs to implement Copy, we might get around this with lifetimes..
+            // TODO: note for this iter to work, HedgeIterator needs to implement Copy, you can get around this with lifetimes then the caller can't reuse the input vec..
 
             let idx0 = hedge.starting_node();
             let idx1 = hedge.end_node();
@@ -126,10 +191,10 @@ impl Triangulation {
 
                 if hedge.tri().is_conceptual() {
                     if orientation <= 0 {
-                        return Some(*hedge);
+                        return Some(hedge.clone());
                     }
                 } else if orientation < 0 {
-                    return Some(*hedge);
+                    return Some(hedge.clone());
                 }
             }
         }
@@ -137,7 +202,7 @@ impl Triangulation {
     }
 
     /// For a tri idx get the triangle variant, i.e. a normal triangle, or a line with one of its three indices at infinity
-    pub fn get_tri_type(&self, tri_idx: usize) -> Result<TriangleExtended> {
+    pub fn get_tri_type(&self, tri_idx: usize) -> HowResult<TriangleExtended> {
         let [node0, node1, node2] = self.tds.get_tri(tri_idx)?.nodes();
 
         let tri_extended = match (node0, node1, node2) {
@@ -165,15 +230,16 @@ impl Triangulation {
             (_, _, _) => return Err(anyhow::Error::msg("An unexpected triangle case occurred")),
         };
 
-        Ok(tri_extended)
+        HowOk(tri_extended)
     }
 
     /// Gets the height for a vertex
     pub fn height(&self, v_idx: VertexIdx) -> f64 {
-        self.vertices[v_idx][0].powi(2) + self.vertices[v_idx][1].powi(2) - self.weights[v_idx]
+        self.vertices[v_idx][0].powi(2) + self.vertices[v_idx][1].powi(2)
+            - self.weights.as_ref().map_or(0.0, |weights| weights[v_idx])
     }
 
-    pub fn insert_init_tri(&mut self, v_idxs: &mut Vec<VertexIdx>) -> Result<()> {
+    pub fn insert_init_tri(&mut self, v_idxs: &mut Vec<VertexIdx>) -> HowResult<()> {
         let now = std::time::Instant::now();
 
         if self.vertices().len() == v_idxs.len() {
@@ -185,8 +251,8 @@ impl Triangulation {
 
             let mut aligned = Vec::new();
 
+            // TODO: simplify the control flow here, the break and continue can be aligned more understandably
             loop {
-                // TODO: simplify the control flow here, the break and continue can be aligned more understandably
                 if let Some(idx2) = v_idxs.pop() {
                     let v2 = self.vertices()[idx2];
 
@@ -222,16 +288,19 @@ impl Triangulation {
             "Initial triangle inserted in {:.4} µs",
             now.elapsed().as_micros()
         );
-        Ok(())
+        HowOk(())
     }
 
     /// Insert a vertex into the triangulation.
+    ///
+    /// ## Errors
+    /// Returns an error if `self` does not have any triangles in it.
     pub fn insert_vertex(
         &mut self,
         v: [f64; 2],
-        weight: f64,
+        weight: Option<f64>,
         near_to: Option<usize>,
-    ) -> Result<()> {
+    ) -> HowResult<()> {
         if self.tds.num_tris() == 0 {
             return Err(anyhow::Error::msg(
                 "Needs at least 1 triangle in the triangulation to insert a vertex!",
@@ -240,7 +309,9 @@ impl Triangulation {
 
         let idx_to_insert = self.vertices.len();
         self.vertices.push(v);
-        self.weights.push(weight);
+        if let Some(weights) = &mut self.weights {
+            weights.push(weight.unwrap_or(0.0));
+        }
 
         let near_to_idx: usize;
 
@@ -256,34 +327,26 @@ impl Triangulation {
 
         self.log_time();
 
-        Ok(())
+        HowOk(())
     }
 
     /// Insert a set of vertices into the triangulation.
     ///
-    /// For the classical Delaunay triangulation, set all weights to 0.0, i.e. pass something like `vec![0.0; n]`.
+    /// For the classical Delaunay triangulation, don't set weights.
     pub fn insert_vertices(
         &mut self,
         vertices: &[Vertex2],
         weights: Option<Vec<f64>>,
         spatial_sorting: bool,
-    ) -> Result<()> {
+    ) -> HowResult<()> {
         let mut idxs_to_insert = Vec::new();
-
-        if weights.is_some() {
-            self.weighted = true;
-        }
 
         for v in vertices {
             idxs_to_insert.push(self.vertices.len());
             self.vertices.push(*v);
         }
 
-        if let Some(weights) = weights {
-            self.weights = weights.clone();
-        } else {
-            self.weights = vec![0.0; vertices.len()];
-        }
+        self.weights = weights;
 
         if self.vertices().len() < 3 {
             return Err(anyhow::Error::msg(
@@ -318,10 +381,10 @@ impl Triangulation {
 
         self.log_time();
 
-        Ok(())
+        HowOk(())
     }
 
-    pub fn insert_v_helper(&mut self, v_idx: usize, near_to: usize) -> Result<()> {
+    pub fn insert_v_helper(&mut self, v_idx: usize, near_to: usize) -> HowResult<()> {
         // Perform locate and measure time
         let now = std::time::Instant::now();
         let containing_tri_idx = self.locate_vis_walk(v_idx, near_to)?; // the possibly invalid triangle
@@ -335,15 +398,15 @@ impl Triangulation {
             && !self.is_v_in_eps_powercircle(v_idx, containing_tri_idx)?
         {
             self.ignored_vertices.push(v_idx);
-            return Ok(());
+            return HowOk(());
         }
 
         // Perform insert and measure time
         // Note in the weighted case we can check directly if the vertex is in the power circle of the triangle, cause it might already be redundant
         // if yes we can skip it, avoid flips and directly go to the next one
-        if self.weighted && !self.is_v_in_powercircle(v_idx, containing_tri_idx)? {
+        if self.weighted() && !self.is_v_in_powercircle(v_idx, containing_tri_idx)? {
             self.redundant_vertices.push(v_idx);
-            return Ok(());
+            return HowOk(());
         }
         self.used_vertices.push(v_idx);
 
@@ -385,11 +448,10 @@ impl Triangulation {
                         let tri_idx_abd = hedge.tri().idx;
                         let tri_idx_bcd = hedge.twin().tri().idx;
 
-                        let vertices_clone = self.vertices.clone();
-                        let t0 = self.tds_mut().flip_3_to_1(
+                        let t0 = self.tds.flip_3_to_1(
                             [tri_idx_abd, tri_idx_bcd, third_tri_idx],
                             relfex_node_idx,
-                            &vertices_clone, //TODO avoid cloning all vertices
+                            &self.vertices,
                         )?;
                         self.last_inserted_triangle = Some(t0.idx);
 
@@ -409,11 +471,11 @@ impl Triangulation {
             }
         }
         self.time_flipping += now.elapsed().as_micros();
-        Ok(())
+        HowOk(())
     }
 
     /// Check if a triangle is flat, i.e. exists of three co-linear points.
-    pub fn is_tri_flat(&self, tri_idx: usize) -> Result<bool> {
+    pub fn is_tri_flat(&self, tri_idx: usize) -> HowResult<bool> {
         let tri = self.get_tri_type(tri_idx)?;
 
         let is_flat = match tri {
@@ -423,11 +485,11 @@ impl Triangulation {
             TriangleExtended::ConceptualTriangle(_) => false, // the conceptual triangle can't be flat
         };
 
-        Ok(is_flat)
+        HowOk(is_flat)
     }
 
     /// Check for a vertex, if it lies inside the power circle of a triangle.
-    pub fn is_v_in_powercircle(&self, v_idx: usize, tri_idx: usize) -> Result<bool> {
+    pub fn is_v_in_powercircle(&self, v_idx: usize, tri_idx: usize) -> HowResult<bool> {
         let p = self.vertices()[v_idx];
         let h_p = self.height(v_idx);
 
@@ -448,10 +510,12 @@ impl Triangulation {
                 gp::orient_2d(&tri_idxs[0], &tri_idxs[1], &p)
             }
         };
-        Ok(in_circle > 0)
+
+        HowOk(in_circle > 0)
     }
 
-    pub fn is_v_in_eps_powercircle(&self, v_idx: usize, tri_idx: usize) -> Result<bool> {
+    /// Panics if `self.epsilon` is not set
+    pub(crate) fn is_v_in_eps_powercircle(&self, v_idx: usize, tri_idx: usize) -> HowResult<bool> {
         let p = self.vertices()[v_idx];
 
         let h_p = if self.epsilon.is_some() {
@@ -472,7 +536,7 @@ impl Triangulation {
 
                 let in_eps_circle = gp::orient_2dlifted_SOS(&a, &b, &c, &p, h_a, h_b, h_c, h_p);
 
-                Ok(in_eps_circle > 0)
+                HowOk(in_eps_circle > 0)
             }
             // if the triangle is a line segment, then the power circle is a circle with infinite radius and we can use a orientation test
             TriangleExtended::ConceptualTriangle(_) => Err(anyhow::Error::msg(
@@ -484,7 +548,7 @@ impl Triangulation {
     /// Check if the triangulation is regular w.r.t. the empty power-sphere property.
     ///
     /// Returns if the validation is valid and to what degree.
-    pub fn is_regular(&self) -> Result<(bool, f64)> {
+    pub fn is_regular(&self) -> HowResult<(bool, f64)> {
         let mut regular = true;
         let mut num_violated_triangles = 0;
 
@@ -546,7 +610,7 @@ impl Triangulation {
             }
         }
 
-        Ok((
+        HowOk((
             regular,
             1.0 - num_violated_triangles as f64 / self.tds().num_tris() as f64,
         ))
@@ -556,7 +620,7 @@ impl Triangulation {
     ///
     /// This can significantly reduce the runtime of this predicate.
     #[must_use]
-    pub fn is_regular_p(&self, with_ignored_vertices: bool) -> f64 {
+    pub fn par_is_regular(&self, with_ignored_vertices: bool) -> f64 {
         let num_tris = self.tds().num_tris();
         let num_deleted_tris = self.tds().num_deleted_tris;
 
@@ -639,7 +703,7 @@ impl Triangulation {
         &self,
         vertices: &[[f64; 2]],
         weights: Option<Vec<f64>>,
-    ) -> Result<(bool, f64)> {
+    ) -> HowResult<(bool, f64)> {
         let mut regular = true;
         let mut num_violated_triangles = 0;
 
@@ -698,18 +762,18 @@ impl Triangulation {
             }
         }
 
-        Ok((
+        HowOk((
             regular,
             1.0 - num_violated_triangles as f64 / self.tds().num_tris() as f64,
         ))
     }
 
-    pub fn is_sound(&self) -> Result<bool> {
+    pub fn is_sound(&self) -> HowResult<bool> {
         if self.tds().is_sound() {
-            Ok(true)
+            HowOk(true)
         } else {
             error!("Triangulation is not sound!");
-            Ok(false)
+            HowOk(false)
         }
     }
 
@@ -742,12 +806,12 @@ impl Triangulation {
         self.used_vertices.len()
     }
 
-    pub fn should_flip_hedge(&mut self, hedge_idx: usize) -> Result<Option<Flip>> {
+    pub(crate) fn should_flip_hedge(&mut self, hedge_idx: usize) -> HowResult<Option<Flip>> {
         let hedge = self.tds().get_hedge(hedge_idx)?;
 
         // Skip hedges that have been deleted by 3->1 flips
         if hedge.starting_node() == VertexNode::Deleted || hedge.end_node() == VertexNode::Deleted {
-            return Ok(None);
+            return HowOk(None);
         }
 
         let tri_idx_abd = hedge.tri().idx;
@@ -764,7 +828,7 @@ impl Triangulation {
             || node_c == VertexNode::Deleted
             || node_d == VertexNode::Deleted
         {
-            return Ok(None);
+            return HowOk(None);
         }
 
         match (node_a, node_b, node_c, node_d) {
@@ -776,7 +840,7 @@ impl Triangulation {
             ) => {
                 let mut flip = Some(Flip::TwoToTwo);
 
-                if self.weighted {
+                if self.weighted() {
                     // this can make flipe a 3->1, None or stay a 2->2
                     flip = self.is_flippable(
                         [idx_node_b, idx_node_d],
@@ -785,7 +849,7 @@ impl Triangulation {
                     );
 
                     if flip.is_none() {
-                        return Ok(None); // edge is not flippable (i.e. a 3 to 1 flip, that cant be made due to internal structure of the triangulation)
+                        return HowOk(None); // edge is not flippable (i.e. a 3 to 1 flip, that cant be made due to internal structure of the triangulation)
                     }
                 }
 
@@ -793,9 +857,9 @@ impl Triangulation {
                 if self.is_v_in_powercircle(idx_node_c, tri_idx_abd)?
                     || self.is_v_in_powercircle(idx_node_a, tri_idx_bcd)?
                 {
-                    Ok(flip) // flip necessary, not regular
+                    HowOk(flip) // flip necessary, not regular
                 } else {
-                    Ok(None) // no flip necessary, already regular
+                    HowOk(None) // no flip necessary, already regular
                 }
             }
             (
@@ -803,7 +867,7 @@ impl Triangulation {
                 VertexNode::Casual(_),
                 VertexNode::Casual(_),
                 VertexNode::Casual(_),
-            ) => Ok(None),
+            ) => HowOk(None),
             (
                 VertexNode::Casual(idx_node_a),
                 VertexNode::Conceptual,
@@ -815,9 +879,9 @@ impl Triangulation {
                     self.vertices()[idx_node_d],
                     self.vertices()[idx_node_a],
                 ) {
-                    Ok(Some(Flip::TwoToTwo))
+                    HowOk(Some(Flip::TwoToTwo))
                 } else {
-                    Ok(None)
+                    HowOk(None)
                 }
             }
             (
@@ -829,9 +893,9 @@ impl Triangulation {
                 if self.is_v_in_powercircle(idx_node_a, tri_idx_bcd)?
                     || self.is_tri_flat(tri_idx_abd)?
                 {
-                    Ok(Some(Flip::TwoToTwo))
+                    HowOk(Some(Flip::TwoToTwo))
                 } else {
-                    Ok(None)
+                    HowOk(None)
                 }
             }
             (
@@ -845,9 +909,9 @@ impl Triangulation {
                     self.vertices()[idx_node_b],
                     self.vertices()[idx_node_c],
                 ) {
-                    Ok(Some(Flip::TwoToTwo))
+                    HowOk(Some(Flip::TwoToTwo))
                 } else {
-                    Ok(None)
+                    HowOk(None)
                 }
             }
             (_, _, _, _) => Err(anyhow::Error::msg(
@@ -907,12 +971,12 @@ impl Triangulation {
 
     /// Get the weights.
     #[must_use]
-    pub const fn weights(&self) -> &Vec<f64> {
+    pub const fn weights(&self) -> &Option<Vec<f64>> {
         &self.weights
     }
 
     /// Locate the triangle that contains a point by using the visibility walk.
-    pub fn locate_vis_walk(&self, v_idx: usize, tri_idx_start: usize) -> Result<usize> {
+    pub fn locate_vis_walk(&self, v_idx: usize, tri_idx_start: usize) -> HowResult<usize> {
         let v = self.vertices()[v_idx];
 
         let mut tri_idx = tri_idx_start; // variable to store the current triangle index
@@ -939,7 +1003,7 @@ impl Triangulation {
                 // they also share a common point
                 // we use the bisector to determine where the point lies in
                 // TODO: refactor this special case
-                if self.weighted
+                if self.weighted()
                     && hedge_twin.prev().twin().tri().is_conceptual()
                     && hedge_twin.next().twin().tri().is_conceptual()
                     && !hedge_twin.prev().starting_node().is_conceptual()
@@ -963,7 +1027,7 @@ impl Triangulation {
                     let side_v_b = gp::orient_2d(&o, &b, &v);
 
                     if side_p_help_a == side_v_a && side_p_help_b == side_v_b {
-                        return Ok(hedge.twin().tri().idx);
+                        return HowOk(hedge.twin().tri().idx);
                     }
 
                     let o_vec = nalgebra::Vector2::new(o[0], o[1]);
@@ -978,9 +1042,9 @@ impl Triangulation {
                     let c = [c_vec[0], c_vec[1]];
 
                     if gp::orient_2d(&o, &c, &v) == gp::orient_2d(&o, &c, &a) {
-                        return Ok(a_tri_idx);
+                        return HowOk(a_tri_idx);
                     } else if gp::orient_2d(&o, &c, &v) == gp::orient_2d(&o, &c, &b) {
-                        return Ok(b_tri_idx);
+                        return HowOk(b_tri_idx);
                     } else {
                         panic!("Vertex is not on either side of the bisector");
                     }
@@ -994,7 +1058,7 @@ impl Triangulation {
 
                 side = !side;
             } else {
-                return Ok(tri_idx);
+                return HowOk(tri_idx);
             }
         }
     }
@@ -1125,10 +1189,10 @@ impl Eq for Triangulation {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{sample_vertices_2d, sample_weights};
+    use rita_test_utils::{sample_vertices_2d, sample_weights};
 
     fn verify_triangulation(triangulation: &Triangulation) {
-        let regularity = triangulation.is_regular_p(false);
+        let regularity = triangulation.par_is_regular(false);
         let sound = triangulation.is_sound().unwrap();
         assert_eq!(regularity, 1.0);
         assert!(sound);
@@ -1186,7 +1250,7 @@ mod tests {
             let result = triangulation.insert_vertices(&vertices, None, true);
 
             match result {
-                Result::Ok(_) => (),
+                HowResult::Ok(_) => (),
                 Err(e) => {
                     log::error!("Error: {}", e);
                 }
@@ -1206,7 +1270,7 @@ mod tests {
             let result = triangulation.insert_vertices(&vertices, Some(weights), true);
 
             match result {
-                Result::Ok(_) => (),
+                HowResult::Ok(_) => (),
                 Err(e) => {
                     log::error!("Error: {}", e);
                 }
@@ -1232,7 +1296,7 @@ mod tests {
             let result = triangulation.insert_vertices(&vertices, None, true);
 
             match result {
-                Result::Ok(_) => (),
+                HowResult::Ok(_) => (),
                 Err(e) => {
                     log::error!("Error: {}", e);
                 }
@@ -1259,7 +1323,7 @@ mod tests {
             let result = triangulation.insert_vertices(&vertices, Some(weights), true);
 
             match result {
-                Result::Ok(_) => (),
+                HowResult::Ok(_) => (),
                 Err(e) => {
                     log::error!("Error: {}", e);
                 }
@@ -1291,9 +1355,74 @@ mod tests {
         let elapsed = now.elapsed().as_millis();
 
         let now = std::time::Instant::now();
-        let _regular_p = triangulation.is_regular_p(false);
+        let _regular_p = triangulation.par_is_regular(false);
         let elapsed_p = now.elapsed().as_millis();
 
         assert!(elapsed_p < elapsed)
+    }
+
+    #[test]
+    fn results_same_2d() {
+        let vertices = &[
+            [4.9, 31.9],
+            [44.2, -0.05],
+            [-49.31, 2.4],
+            [98.5, -6.9],
+            [7.7, 9.1],
+            [3.5, 6.1],
+            [6.0, -3.46],
+            [4.7, 91.5],
+            [6.7, 3.6],
+            [-3.7, -40.3],
+        ];
+
+        assert_eq!(
+            triangulation!(vertices).tris(),
+            vec![
+                [[6.0, -3.46], [3.5, 6.1], [-49.31, 2.4]],
+                [[4.7, 91.5], [4.9, 31.9], [44.2, -0.05]],
+                [[3.5, 6.1], [7.7, 9.1], [4.9, 31.9]],
+                [[3.5, 6.1], [6.0, -3.46], [6.7, 3.6]],
+                [[-3.7, -40.3], [98.5, -6.9], [44.2, -0.05]],
+                [[3.5, 6.1], [6.7, 3.6], [7.7, 9.1]],
+                [[44.2, -0.05], [6.0, -3.46], [-3.7, -40.3]],
+                [[-49.31, 2.4], [-3.7, -40.3], [6.0, -3.46]],
+                [[-49.31, 2.4], [3.5, 6.1], [4.9, 31.9]],
+                [[4.9, 31.9], [7.7, 9.1], [44.2, -0.05]],
+                [[4.9, 31.9], [4.7, 91.5], [-49.31, 2.4]],
+                [[44.2, -0.05], [98.5, -6.9], [4.7, 91.5]],
+                [[7.7, 9.1], [6.7, 3.6], [44.2, -0.05]],
+                [[44.2, -0.05], [6.7, 3.6], [6.0, -3.46]]
+            ]
+        );
+
+        let vertices = &[
+            [-0.37122939978339264, 0.3190369464265699],
+            [0.44217013845102393, -0.055915696282054284],
+            [-0.4931480236200205, -0.16592024114317144],
+            [0.4250889854947786, -0.11789966697253218],
+            [0.24723377358550735, 0.2100464123915723],
+            [0.36490258549176935, 0.1365021615193457],
+            [0.3504827256051506, -0.19027659995331642],
+            [-0.28683831662024745, 0.4111240123491553],
+            [0.37042241707160173, 0.18423333136526698],
+            [-0.3855198542371303, -0.44705493099901394],
+        ];
+
+        assert_eq!(
+            triangulation!(vertices).tris(),
+            vec![
+                [[-0.4931480236200205, -0.16592024114317144], [-0.3855198542371303, -0.44705493099901394], [0.3504827256051506, -0.19027659995331642]],
+                [[-0.37122939978339264, 0.3190369464265699], [-0.4931480236200205, -0.16592024114317144], [0.24723377358550735, 0.2100464123915723]],
+                [[-0.28683831662024745, 0.4111240123491553], [0.24723377358550735, 0.2100464123915723], [0.37042241707160173, 0.18423333136526698]],
+                [[0.24723377358550735, 0.2100464123915723], [-0.28683831662024745, 0.4111240123491553], [-0.37122939978339264, 0.3190369464265699]],
+                [[0.3504827256051506, -0.19027659995331642], [0.24723377358550735, 0.2100464123915723], [-0.4931480236200205, -0.16592024114317144]],
+                [[0.24723377358550735, 0.2100464123915723], [0.36490258549176935, 0.1365021615193457], [0.37042241707160173, 0.18423333136526698]],
+                [[0.37042241707160173, 0.18423333136526698], [0.36490258549176935, 0.1365021615193457], [0.44217013845102393, -0.055915696282054284]],
+                [[0.36490258549176935, 0.1365021615193457], [0.24723377358550735, 0.2100464123915723], [0.3504827256051506, -0.19027659995331642]],
+                [[0.44217013845102393, -0.055915696282054284], [0.36490258549176935, 0.1365021615193457], [0.3504827256051506, -0.19027659995331642]],
+                [[0.3504827256051506, -0.19027659995331642], [0.4250889854947786, -0.11789966697253218], [0.44217013845102393, -0.055915696282054284]],
+            ]
+        );
     }
 }

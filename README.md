@@ -1,7 +1,7 @@
 # rita - Randomized Incremental Triangulation Algorithms
 
 [![Crates.io version](https://img.shields.io/crates/v/rita.svg)](https://crates.io/crates/rita)
-![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-brightgreen.svg)
+[![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-brightgreen.svg)](https://github.com/glennDittmann/rita/blob/main/src/lib.rs#L8)
 
 An implementation of (randomized) incremental weighted Delaunay triangulations in safe rust.
 
@@ -22,7 +22,7 @@ let vertices = vec![
     [1.5, 1.5],
     [3.0, 1.0],
 ];
-let weights = vec![0.2, 0.3, 0.55, 0.5, 0.6, 0.4, 0.65, 0.7, 0.85, 0.35];
+let weights = vec![0.2, 0.3, 0.55, 0.5, 0.6, 0.4, 0.65, 0.7, 0.85, 0.35]; // or None
 
 let mut triangulation = Triangulation::new(None); // specify epsilon here
 let result = triangulation.insert_vertices(&vertices, Some(weights), true);  // last parameter toggles spatial sorting
@@ -42,7 +42,7 @@ let vertices = vec![
     [1.5, 1.5, 3.0],
     [3.0, 1.0, 4.0],
 ];
-let weights = vec![0.2, 0.3, 0.55, 0.5, 0.6, 0.4, 0.65, 0.7, 0.85, 0.35];
+let weights = vec![0.2, 0.3, 0.55, 0.5, 0.6, 0.4, 0.65, 0.7, 0.85, 0.35]; // or None
 
 let mut tetrahedralization = Tetrahedralization::new(None); // specify epsilon here
 let result = tetrahedralization.insert_vertices(&vertices, Some(weights), true);  // last parameter toggles spatial sorting

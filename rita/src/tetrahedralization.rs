@@ -8,7 +8,7 @@ use crate::{
     },
     VertexNode,
 };
-use anyhow::Result;
+use anyhow::Result as HowResult;
 use geogram_predicates as gp;
 use log::error;
 use rayon::prelude::*;
@@ -43,23 +43,25 @@ pub enum ExtendedTetrahedron {
 /// let mut tetrahedralization = Tetrahedralization::new(None); // specify epsilon here
 /// let result = tetrahedralization.insert_vertices(&vertices, Some(weights), true);  // last parameter toggles spatial sorting
 /// println!("{:?}", result);
-/// assert_eq!(tetrahedralization.is_regular_p(false), 1.0);
+/// assert_eq!(tetrahedralization.par_is_regular(false), 1.0);
 /// ```
+#[derive(Debug)]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct Tetrahedralization {
     epsilon: Option<f64>,
     tds: TetDataStructure,
     vertices: Vec<Vertex3>,
-    /// The weights of the vertices
-    weights: Vec<f64>,
+    /// The weights of the vertices, `Some` if the vertices are weighted
+    weights: Option<Vec<f64>>,
     pub time_hilbert: u128,
     time_walking: u128,
     time_inserting: u128,
     /// Indices of vertices that are inserted, i.e. not skipped due to epsilon
+    #[cfg_attr(feature = "arbitrary", arbitrary(default))]
     used_vertices: Vec<VertexIdx>,
     /// Indices of vertices that are ignored, i.e. skipped due to epsilon
+    #[cfg_attr(feature = "arbitrary", arbitrary(default))]
     ignored_vertices: Vec<VertexIdx>,
-    /// If the vertices are weighted
-    weighted: bool,
 }
 
 impl Default for Tetrahedralization {
@@ -68,20 +70,77 @@ impl Default for Tetrahedralization {
     }
 }
 
+/// Create a new [`Tetrahedralization`] from vertices with optional weights and epsilon.
+///
+/// ## Example
+/// ```
+/// # use rita::tetrahedralization;
+/// tetrahedralization!(&[[0.0, 9.9, 4.2], [6.9, 12.3, 3.8], [5.2, 3.33, 1.92]]);
+/// // with epsilon
+/// tetrahedralization!(&[[0.0, 9.9, 4.2], [6.9, 12.3, 3.8], [5.2, 3.33, 1.92]], epsilon = 1e-9);
+/// // with weights
+/// tetrahedralization!(&[[0.0, 9.9, 4.2], [6.9, 12.3, 3.8], [5.2, 3.33, 1.92]], vec![0.2, 1.3]);
+/// // with weights and epsilon
+/// tetrahedralization!(&[[0.0, 9.9, 4.2], [6.9, 12.3, 3.8], [5.2, 3.33, 1.92]], vec![0.2, 1.3], epsilon = 1e-9);
+/// ```
+#[macro_export]
+macro_rules! tetrahedralization {
+    ($vertices:expr) => {{
+        let mut tetrahedralization =
+            $crate::Tetrahedralization::new_with_vert_capacity(None, $vertices.len());
+        let _ = tetrahedralization.insert_vertices($vertices, None, true);
+        tetrahedralization
+    }};
+    ($vertices:expr, epsilon = $epsilon:expr) => {{
+        let mut tetrahedralization = $crate::Tetrahedralization::new_with_vert_capacity(Some($epsilon), $vertices.len());
+        let _ = tetrahedralization.insert_vertices($vertices, None, true);
+        tetrahedralization
+    }};
+    // with weights
+    ($vertices:expr, $weights:expr) => {{
+        let mut tetrahedralization = $crate::Tetrahedralization::new_with_vert_capacity(None, $vertices.len());
+        let _ = tetrahedralization.insert_vertices($vertices, Some($weights), true);
+        tetrahedralization
+    }};
+    ($vertices:expr, $weights:expr, epsilon = $epsilon:expr) => {{
+        let mut tetrahedralization = $crate::Tetrahedralization::new_with_vert_capacity(Some($epsilon), $vertices.len());
+        let _ = tetrahedralization.insert_vertices($vertices, Some($weights), true);
+        tetrahedralization
+    }};
+}
+
 impl Tetrahedralization {
     pub const fn new(epsilon: Option<f64>) -> Self {
         Self {
             epsilon,
             tds: TetDataStructure::new(),
             vertices: Vec::new(),
-            weights: Vec::new(),
+            weights: None,
             time_hilbert: 0,
             time_walking: 0,
             time_inserting: 0,
             used_vertices: Vec::new(),
             ignored_vertices: Vec::new(),
-            weighted: false,
         }
+    }
+
+    /// Create a new `Tetrahedralization` with a pre-allocated capacity for vertices
+    pub fn new_with_vert_capacity(epsilon: Option<f64>, capacity: usize) -> Self {
+        Self {
+            epsilon,
+            tds: TetDataStructure::new(),
+            vertices: Vec::with_capacity(capacity),
+            weights: None,
+            time_hilbert: 0,
+            time_walking: 0,
+            time_inserting: 0,
+            used_vertices: Vec::new(),
+            ignored_vertices: Vec::new(),
+        }
+    }
+
+    pub(crate) const fn weighted(&self) -> bool {
+        self.weights.is_some()
     }
 
     /// Gets the height for a vertex
@@ -89,7 +148,7 @@ impl Tetrahedralization {
         self.vertices[v_idx][0].powi(2)
             + self.vertices[v_idx][1].powi(2)
             + self.vertices[v_idx][2].powi(2)
-            - self.weights[v_idx]
+            - self.weights.as_ref().map_or(0.0, |weights| weights[v_idx])
     }
 
     /// The number of triangles, without the ones that have an connection to the dummy point.
@@ -143,7 +202,7 @@ impl Tetrahedralization {
     }
 
     /// Gets extended tetrahedron from index
-    pub fn get_tet_as_extended(&self, tet_idx: usize) -> Result<ExtendedTetrahedron> {
+    pub fn get_tet_as_extended(&self, tet_idx: usize) -> HowResult<ExtendedTetrahedron> {
         let [node0, node1, node2, node3] = self.tds().get_tet(tet_idx)?.nodes();
 
         let ext_tri = match (node0, node1, node2, node3) {
@@ -153,9 +212,9 @@ impl Tetrahedralization {
                 VertexNode::Casual(v_idx2),
                 VertexNode::Casual(v_idx3),
             ) => {
-                let v1 = self.vertices()[v_idx1];
-                let v2 = self.vertices()[v_idx2];
-                let v3 = self.vertices()[v_idx3];
+                let v1 = self.vertices[v_idx1];
+                let v2 = self.vertices[v_idx2];
+                let v3 = self.vertices[v_idx3];
                 ExtendedTetrahedron::Triangle([v1, v3, v2])
             }
             (
@@ -164,9 +223,9 @@ impl Tetrahedralization {
                 VertexNode::Casual(v_idx2),
                 VertexNode::Casual(v_idx3),
             ) => {
-                let v0 = self.vertices()[v_idx0];
-                let v2 = self.vertices()[v_idx2];
-                let v3 = self.vertices()[v_idx3];
+                let v0 = self.vertices[v_idx0];
+                let v2 = self.vertices[v_idx2];
+                let v3 = self.vertices[v_idx3];
                 ExtendedTetrahedron::Triangle([v0, v2, v3])
             }
             (
@@ -175,9 +234,9 @@ impl Tetrahedralization {
                 VertexNode::Conceptual,
                 VertexNode::Casual(v_idx3),
             ) => {
-                let v0 = self.vertices()[v_idx0];
-                let v1 = self.vertices()[v_idx1];
-                let v3 = self.vertices()[v_idx3];
+                let v0 = self.vertices[v_idx0];
+                let v1 = self.vertices[v_idx1];
+                let v3 = self.vertices[v_idx3];
                 ExtendedTetrahedron::Triangle([v0, v3, v1])
             }
             (
@@ -186,9 +245,9 @@ impl Tetrahedralization {
                 VertexNode::Casual(v_idx2),
                 VertexNode::Conceptual,
             ) => {
-                let v0 = self.vertices()[v_idx0];
-                let v1 = self.vertices()[v_idx1];
-                let v2 = self.vertices()[v_idx2];
+                let v0 = self.vertices[v_idx0];
+                let v1 = self.vertices[v_idx1];
+                let v2 = self.vertices[v_idx2];
                 ExtendedTetrahedron::Triangle([v0, v1, v2])
             }
             (
@@ -197,10 +256,10 @@ impl Tetrahedralization {
                 VertexNode::Casual(v_idx2),
                 VertexNode::Casual(v_idx3),
             ) => {
-                let v0 = self.vertices()[v_idx0];
-                let v1 = self.vertices()[v_idx1];
-                let v2 = self.vertices()[v_idx2];
-                let v3 = self.vertices()[v_idx3];
+                let v0 = self.vertices[v_idx0];
+                let v1 = self.vertices[v_idx1];
+                let v2 = self.vertices[v_idx2];
+                let v3 = self.vertices[v_idx3];
                 ExtendedTetrahedron::Tetrahedron([v0, v1, v2, v3])
             }
             (_, _, _, _) => {
@@ -211,13 +270,13 @@ impl Tetrahedralization {
         Ok(ext_tri)
     }
 
-    pub fn is_v_in_sphere(&self, v_idx: usize, tet_idx: usize, strict: bool) -> Result<bool> {
-        let p = self.vertices()[v_idx];
+    pub fn is_v_in_sphere(&self, v_idx: usize, tet_idx: usize, strict: bool) -> HowResult<bool> {
+        let p = self.vertices[v_idx];
 
         let ext_tet = self.get_tet_as_extended(tet_idx)?;
 
         let in_sphere = match ext_tet {
-            // TODO: why do we need to invert gp's in sphere, compared to robust's, they should have the same signes for the same cases
+            // TODO: why do we need to invert gp's in sphere, compared to robust's, they should have the same signs for the same cases
             ExtendedTetrahedron::Tetrahedron([a, b, c, d]) => {
                 -gp::in_sphere_3d_SOS(&a, &b, &c, &d, &p)
             }
@@ -231,14 +290,14 @@ impl Tetrahedralization {
         }
     }
 
-    fn is_v_in_powersphere(&self, v_idx: usize, tet_idx: usize, strict: bool) -> Result<bool> {
-        let p = self.vertices()[v_idx];
+    fn is_v_in_powersphere(&self, v_idx: usize, tet_idx: usize, strict: bool) -> HowResult<bool> {
+        let p = self.vertices[v_idx];
         let h_p = self.height(v_idx);
 
         let ext_tet = self.get_tet_as_extended(tet_idx)?;
 
         let in_sphere = match ext_tet {
-            // TODO: why do we need to invert gp's in sphere, compared to robust's, they should have the same signes for the same cases
+            // TODO: why do we need to invert gp's in sphere, compared to robust's, they should have the same signs for the same cases
             ExtendedTetrahedron::Tetrahedron([a, b, c, d]) => {
                 let [h_a, h_b, h_c, h_d] = self
                     .tds()
@@ -259,8 +318,8 @@ impl Tetrahedralization {
         }
     }
 
-    fn is_v_in_eps_powersphere(&self, v_idx: usize, tet_idx: usize) -> Result<bool> {
-        let p = self.vertices()[v_idx];
+    fn is_v_in_eps_powersphere(&self, v_idx: usize, tet_idx: usize) -> HowResult<bool> {
+        let p = self.vertices[v_idx];
 
         let h_p = if self.epsilon.is_some() {
             self.height(v_idx) + self.epsilon.unwrap()
@@ -289,7 +348,7 @@ impl Tetrahedralization {
         }
     }
 
-    fn is_tet_flat(&self, tet_idx: usize) -> Result<bool> {
+    fn is_tet_flat(&self, tet_idx: usize) -> HowResult<bool> {
         let ext_tri = self.get_tet_as_extended(tet_idx)?;
 
         // TODO: completely cover this with match
@@ -302,12 +361,12 @@ impl Tetrahedralization {
         Ok(is_flat)
     }
 
-    fn choose_tri<'a>(
+    fn choose_tri<'a, 'hi>(
         &self,
-        tris: &Vec<HalfTriIterator<'a>>,
+        tris: &'hi [HalfTriIterator<'a>],
         v: &[f64; 3],
-    ) -> Option<HalfTriIterator<'a>> {
-        for &tri in tris {
+    ) -> Option<&'hi HalfTriIterator<'a>> {
+        for tri in tris {
             let [node0, node1, node2] = tri.nodes();
 
             if let (
@@ -316,9 +375,9 @@ impl Tetrahedralization {
                 VertexNode::Casual(v_idx2),
             ) = (node0, node1, node2)
             {
-                let v0 = self.vertices()[v_idx0];
-                let v1 = self.vertices()[v_idx1];
-                let v2 = self.vertices()[v_idx2];
+                let v0 = self.vertices[v_idx0];
+                let v1 = self.vertices[v_idx1];
+                let v2 = self.vertices[v_idx2];
 
                 let orientation = -gp::orient_3d(&v0, &v1, &v2, v);
 
@@ -335,7 +394,7 @@ impl Tetrahedralization {
         None
     }
 
-    fn walk_check_all(&self, v_idx: usize) -> Result<usize> {
+    fn walk_check_all(&self, v_idx: usize) -> HowResult<usize> {
         for curr_tet_idx in 0..self.tds().num_tets() {
             if self.is_tet_flat(curr_tet_idx)? {
                 continue;
@@ -349,12 +408,12 @@ impl Tetrahedralization {
         Err(anyhow::Error::msg("Could not find sphere containing point"))
     }
 
-    fn locate_vis_walk(&self, v_idx: usize, starting_tet_idx: usize) -> Result<usize> {
-        let v = self.vertices()[v_idx];
+    fn locate_vis_walk(&self, v_idx: usize, starting_tet_idx: usize) -> HowResult<usize> {
+        let v = self.vertices[v_idx];
 
         let mut curr_tet_idx = starting_tet_idx;
         let starting_tet = self.tds().get_tet(curr_tet_idx)?;
-        let mut tris: Vec<HalfTriIterator> = starting_tet.half_triangles().to_vec();
+        let mut tris = starting_tet.half_triangles().to_vec();
 
         let mut side = 0;
         let mut num_visited = 0;
@@ -388,7 +447,7 @@ impl Tetrahedralization {
     }
 
     /// Inserts point using Bowyer Watson method
-    fn insert_bw(&mut self, v_idx: usize, first_tet_idx: usize) -> Result<Vec<usize>> {
+    fn insert_bw(&mut self, v_idx: usize, first_tet_idx: usize) -> HowResult<Vec<usize>> {
         self.tds.bw_start(first_tet_idx)?;
 
         while let Some(tet_idx) = self.tds.bw_tets_to_check() {
@@ -403,7 +462,7 @@ impl Tetrahedralization {
         self.tds.bw_insert_node(node)
     }
 
-    fn insert_vertex_helper(&mut self, v_idx: usize, near_to_idx: usize) -> Result<usize> {
+    fn insert_vertex_helper(&mut self, v_idx: usize, near_to_idx: usize) -> HowResult<usize> {
         // Locating vertex via vis walk
         let now = std::time::Instant::now();
 
@@ -424,7 +483,7 @@ impl Tetrahedralization {
             // but only if the containing tet is casual (for now), i.e. the vertex is inside the current convex hull
             self.ignored_vertices.push(v_idx);
             return Ok(0); // TODO return correct last added idx
-        } else if self.weighted
+        } else if self.weighted()
             && self.tds().get_tet(containing_tet_idx)?.is_casual()
             && !self.is_v_in_powersphere(v_idx, containing_tet_idx, false)?
         {
@@ -445,16 +504,20 @@ impl Tetrahedralization {
         Ok(new_tets[0])
     }
 
-    fn insert_first_tet(&mut self, idxs_to_insert: &mut Vec<usize>) -> Result<()> {
+    fn insert_first_tet(
+        &mut self,
+        idxs_to_insert: &mut Vec<usize>,
+        spatial_sorting: bool,
+    ) -> HowResult<()> {
         let now = std::time::Instant::now();
 
         // first tetrahedron insertion
-        if self.vertices().len() == idxs_to_insert.len() {
+        if self.vertices.len() == idxs_to_insert.len() {
             let idx0 = idxs_to_insert.pop().unwrap();
             let idx1 = idxs_to_insert.pop().unwrap();
 
-            let v0 = self.vertices()[idx0];
-            let v1 = self.vertices()[idx1];
+            let v0 = self.vertices[idx0];
+            let v1 = self.vertices[idx1];
 
             let mut aligned = Vec::new();
             let v01 = [v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]];
@@ -463,7 +526,7 @@ impl Tetrahedralization {
                 .iter()
                 .rev()
                 .enumerate()
-                .map(|(e, &idx)| (e, self.vertices()[idx]))
+                .map(|(e, &idx)| (e, self.vertices[idx]))
                 .map(|(e, v)| (e, [v[0] - v0[0], v[1] - v0[1], v[2] - v0[2]]))
                 .map(|(e, vec)| (e, vec[0] * v01[0] + vec[1] * v01[1] + vec[2] * v01[2]))
                 .map(|(e, scal)| if scal < 0.0 { (e, -scal) } else { (e, scal) })
@@ -471,12 +534,17 @@ impl Tetrahedralization {
                 .map(|(e, _)| e)
                 .unwrap();
 
-            let idx2 = idxs_to_insert.remove(i2);
-            let v2 = self.vertices()[idx2];
+            // todo this needs a double check
+            let idx2 = if spatial_sorting {
+                idxs_to_insert.remove(i2)
+            } else {
+                idxs_to_insert.swap_remove(i2)
+            };
+            let v2 = self.vertices[idx2];
 
             loop {
                 if let Some(idx3) = idxs_to_insert.pop() {
-                    let v3 = self.vertices()[idx3];
+                    let v3 = self.vertices[idx3];
 
                     let orientation = -gp::orient_3d(&v0, &v1, &v2, &v3);
 
@@ -511,8 +579,11 @@ impl Tetrahedralization {
         Ok(())
     }
 
-    /// insert a single vertex in the structure
-    pub fn insert_vertex(&mut self, v: [f64; 3], near_to_idx: Option<usize>) -> Result<()> {
+    /// Insert a single vertex in the structure
+    ///
+    /// ## Errors
+    /// Returns an error if `self` does not have any triangles in it.
+    pub fn insert_vertex(&mut self, v: [f64; 3], near_to_idx: Option<usize>) -> HowResult<()> {
         if self.tds.num_tets() == 0 {
             return Err(anyhow::Error::msg(
                 "Needs at least 1 tetrahedron to insert a single point",
@@ -541,25 +612,17 @@ impl Tetrahedralization {
         vertices: &[[f64; 3]],
         weights: Option<Vec<f64>>,
         spatial_sorting: bool,
-    ) -> Result<()> {
-        let mut idxs_to_insert = Vec::new();
-
-        if weights.is_some() {
-            self.weighted = true;
-        }
+    ) -> HowResult<()> {
+        let mut idxs_to_insert = Vec::with_capacity(vertices.len());
 
         for &v in vertices {
             idxs_to_insert.push(self.vertices.len());
             self.vertices.push(v);
         }
 
-        if let Some(weights) = weights {
-            self.weights = weights.clone();
-        } else {
-            self.weights = vec![0.0; vertices.len()];
-        }
+        self.weights = weights;
 
-        if self.vertices().len() < 4 {
+        if self.vertices.len() < 4 {
             return Err(anyhow::Error::msg(
                 "Needs at least 4 vertices to compute Delaunay",
             ));
@@ -567,13 +630,13 @@ impl Tetrahedralization {
 
         if spatial_sorting {
             let now = std::time::Instant::now();
-            idxs_to_insert = sort_along_hilbert_curve_3d(self.vertices(), &idxs_to_insert);
+            idxs_to_insert = sort_along_hilbert_curve_3d(&self.vertices, idxs_to_insert);
             self.time_hilbert = now.elapsed().as_micros();
             log::trace!("Hilbert curve computed in {} μs", now.elapsed().as_micros());
         }
 
         if self.tds.num_tets() == 0 {
-            self.insert_first_tet(&mut idxs_to_insert)?;
+            self.insert_first_tet(&mut idxs_to_insert, spatial_sorting)?;
         }
 
         let mut last_added_idx = self.tds.num_tets() - 1;
@@ -590,7 +653,7 @@ impl Tetrahedralization {
     }
 
     /// Check if the tetrahedralization is valid, i.e. no vertices are inside the circumsphere of any tetrahedron
-    pub fn is_regular(&self) -> Result<(bool, f64)> {
+    pub fn is_regular(&self) -> HowResult<(bool, f64)> {
         let mut regular = true;
         let mut num_violated_tets = 0;
 
@@ -628,10 +691,11 @@ impl Tetrahedralization {
         ))
     }
 
-    /// Checks regularity in a parallel manner using `rayon`s `par_iter()`.
+    /// Checks regularity in parallel using [`rayon`]s.
     ///
     /// This can significantly reduce the runtime of this predicate.
-    pub fn is_regular_p(&self, with_ignored_vertices: bool) -> f64 {
+    #[must_use]
+    pub fn par_is_regular(&self, with_ignored_vertices: bool) -> f64 {
         let num_tets = self.tds().num_tets();
 
         let num_violated_tets: f64 = (0..num_tets)
@@ -683,7 +747,7 @@ impl Tetrahedralization {
         &self,
         vertices: &[[f64; 3]],
         weights: Option<Vec<f64>>,
-    ) -> Result<(bool, f64)> {
+    ) -> HowResult<(bool, f64)> {
         let mut regular = true;
         let mut num_violated_tets = 0;
 
@@ -747,7 +811,7 @@ impl Tetrahedralization {
         ))
     }
 
-    pub fn is_sound(&self) -> Result<bool> {
+    pub fn is_sound(&self) -> HowResult<bool> {
         match self.tds().is_sound() {
             Ok(true) => Ok(true),
             Ok(false) => {
@@ -780,7 +844,7 @@ impl std::fmt::Display for Tetrahedralization {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::{sample_vertices_3d, sample_weights};
+    use rita_test_utils::{sample_vertices_3d, sample_weights};
 
     fn verify_tetrahedralization(tetrahedralization: &Tetrahedralization) {
         let (_, regularity) = tetrahedralization.is_regular().unwrap(); // a triangulation will always be regular for the used vertices, i.e. without ignored
@@ -912,9 +976,89 @@ mod tests {
         let elapsed = now.elapsed().as_millis();
 
         let now = std::time::Instant::now();
-        let _regular_p = tetrahedralization.is_regular_p(false);
+        let _regular_p = tetrahedralization.par_is_regular(false);
         let elapsed_p = now.elapsed().as_millis();
 
         assert!(elapsed_p < elapsed)
+    }
+
+    #[test]
+    fn results_same_3d() {
+        let vertices = &[
+            [-2.91, 4.7, 60.85],
+            [6.49, -5.9, 96.9],
+            [-7.1, -91.7, 8.5],
+            [8.7, -4.5, -6.4],
+            [9.8, 49.0, 42.9],
+            [-41.65, 6.3, 2.69],
+            [4.105, -1.8, -9.71],
+            [5.3, -3.2, 2.68],
+            [7.62, 5.3, -1.57],
+            [7.28, 4.9, -1.81],
+        ];
+
+        assert_eq!(
+            tetrahedralization!(vertices).tets(),
+            vec![
+                [[-41.65, 6.3, 2.69], [-7.1, -91.7, 8.5], [6.49, -5.9, 96.9], [-2.91, 4.7, 60.85]],
+                [[-41.65, 6.3, 2.69], [-2.91, 4.7, 60.85], [7.62, 5.3, -1.57], [5.3, -3.2, 2.68]],
+                [[-7.1, -91.7, 8.5], [6.49, -5.9, 96.9], [-2.91, 4.7, 60.85], [5.3, -3.2, 2.68]],
+                [[-41.65, 6.3, 2.69], [-2.91, 4.7, 60.85], [6.49, -5.9, 96.9], [9.8, 49.0, 42.9]],
+                [[-41.65, 6.3, 2.69], [-2.91, 4.7, 60.85], [9.8, 49.0, 42.9], [7.62, 5.3, -1.57]],
+                [[-41.65, 6.3, 2.69], [4.105, -1.8, -9.71], [-7.1, -91.7, 8.5], [5.3, -3.2, 2.68]],
+                [[6.49, -5.9, 96.9], [7.62, 5.3, -1.57], [5.3, -3.2, 2.68], [8.7, -4.5, -6.4]],
+                [[-41.65, 6.3, 2.69], [-7.1, -91.7, 8.5], [-2.91, 4.7, 60.85], [5.3, -3.2, 2.68]],
+                [[-41.65, 6.3, 2.69], [7.28, 4.9, -1.81], [4.105, -1.8, -9.71], [5.3, -3.2, 2.68]],
+                [[6.49, -5.9, 96.9], [9.8, 49.0, 42.9], [7.62, 5.3, -1.57], [8.7, -4.5, -6.4]],
+                [[-41.65, 6.3, 2.69], [7.28, 4.9, -1.81], [7.62, 5.3, -1.57], [4.105, -1.8, -9.71]],
+                [[-41.65, 6.3, 2.69], [7.62, 5.3, -1.57], [9.8, 49.0, 42.9], [4.105, -1.8, -9.71]],
+                [[-41.65, 6.3, 2.69], [7.62, 5.3, -1.57], [7.28, 4.9, -1.81], [5.3, -3.2, 2.68]],
+                [[-2.91, 4.7, 60.85], [9.8, 49.0, 42.9], [7.62, 5.3, -1.57], [5.3, -3.2, 2.68]],
+                [[-2.91, 4.7, 60.85], [6.49, -5.9, 96.9], [9.8, 49.0, 42.9], [5.3, -3.2, 2.68]],
+                [[6.49, -5.9, 96.9], [7.62, 5.3, -1.57], [9.8, 49.0, 42.9], [5.3, -3.2, 2.68]],
+                [[-7.1, -91.7, 8.5], [6.49, -5.9, 96.9], [5.3, -3.2, 2.68], [8.7, -4.5, -6.4]],
+                [[7.62, 5.3, -1.57], [7.28, 4.9, -1.81], [5.3, -3.2, 2.68], [8.7, -4.5, -6.4]],
+                [[7.28, 4.9, -1.81], [7.62, 5.3, -1.57], [4.105, -1.8, -9.71], [8.7, -4.5, -6.4]],
+                [[4.105, -1.8, -9.71], [-7.1, -91.7, 8.5], [5.3, -3.2, 2.68], [8.7, -4.5, -6.4]],
+                [[7.28, 4.9, -1.81], [4.105, -1.8, -9.71], [5.3, -3.2, 2.68], [8.7, -4.5, -6.4]],
+            ]
+        );
+
+        let vertices = &[
+            [-0.04725968862914487, 0.3516462125678388, -0.12313760895205272],
+            [0.22292364004203769, -0.09745743275599683, 0.05550159697839596],
+            [-0.12150571763445661, -0.03990107532727405, -0.08537975686394306],
+            [-0.3192238770476341, -0.0067495248588208545, -0.45779316426328687],
+            [-0.07998418694311427, 0.19729937490029037, 0.06739429707395683],
+            [-0.07082940540173965, -0.21955363061383965, 0.412806916526937],
+            [0.038053334853741405, -0.45937873618870206, -0.09889301224830771],
+            [0.26555392349136553, -0.32992168321175064, 0.22636353961636158],
+            [0.2730786166118322, 0.06453656113465944, -0.01530615283103176],
+            [0.04798679923829818, 0.4761807498607096, -0.010111564381819371]
+        ];
+
+        assert_eq!(
+            tetrahedralization!(vertices).tets(),
+            vec![
+                [[-0.07082940540173965, -0.21955363061383965, 0.412806916526937], [0.22292364004203769, -0.09745743275599683, 0.05550159697839596], [0.26555392349136553, -0.32992168321175064, 0.22636353961636158], [0.2730786166118322, 0.06453656113465944, -0.01530615283103176]],
+                [[-0.07998418694311427, 0.19729937490029037, 0.06739429707395683], [0.22292364004203769, -0.09745743275599683, 0.05550159697839596], [-0.07082940540173965, -0.21955363061383965, 0.412806916526937], [0.2730786166118322, 0.06453656113465944, -0.01530615283103176]],
+                [[-0.12150571763445661, -0.03990107532727405, -0.08537975686394306], [0.22292364004203769, -0.09745743275599683, 0.05550159697839596], [0.2730786166118322, 0.06453656113465944, -0.01530615283103176], [0.038053334853741405, -0.45937873618870206, -0.09889301224830771]],
+                [[-0.07082940540173965, -0.21955363061383965, 0.412806916526937], [0.26555392349136553, -0.32992168321175064, 0.22636353961636158], [0.22292364004203769, -0.09745743275599683, 0.05550159697839596], [0.038053334853741405, -0.45937873618870206, -0.09889301224830771]],
+                [[-0.12150571763445661, -0.03990107532727405, -0.08537975686394306], [-0.3192238770476341, -0.0067495248588208545, -0.45779316426328687], [-0.04725968862914487, 0.3516462125678388, -0.12313760895205272], [-0.07998418694311427, 0.19729937490029037, 0.06739429707395683]],
+                [[-0.12150571763445661, -0.03990107532727405, -0.08537975686394306], [-0.07998418694311427, 0.19729937490029037, 0.06739429707395683], [0.22292364004203769, -0.09745743275599683, 0.05550159697839596], [-0.07082940540173965, -0.21955363061383965, 0.412806916526937]],
+                [[-0.07082940540173965, -0.21955363061383965, 0.412806916526937], [0.26555392349136553, -0.32992168321175064, 0.22636353961636158], [0.04798679923829818, 0.4761807498607096, -0.010111564381819371], [0.2730786166118322, 0.06453656113465944, -0.01530615283103176]],
+                [[-0.12150571763445661, -0.03990107532727405, -0.08537975686394306], [-0.3192238770476341, -0.0067495248588208545, -0.45779316426328687], [-0.07998418694311427, 0.19729937490029037, 0.06739429707395683], [-0.07082940540173965, -0.21955363061383965, 0.412806916526937]],
+                [[-0.3192238770476341, -0.0067495248588208545, -0.45779316426328687], [-0.04725968862914487, 0.3516462125678388, -0.12313760895205272], [0.04798679923829818, 0.4761807498607096, -0.010111564381819371], [0.2730786166118322, 0.06453656113465944, -0.01530615283103176]],
+                [[0.22292364004203769, -0.09745743275599683, 0.05550159697839596], [0.26555392349136553, -0.32992168321175064, 0.22636353961636158], [0.2730786166118322, 0.06453656113465944, -0.01530615283103176], [0.038053334853741405, -0.45937873618870206, -0.09889301224830771]],
+                [[-0.12150571763445661, -0.03990107532727405, -0.08537975686394306], [0.22292364004203769, -0.09745743275599683, 0.05550159697839596], [-0.07998418694311427, 0.19729937490029037, 0.06739429707395683], [0.2730786166118322, 0.06453656113465944, -0.01530615283103176]],
+                [[-0.12150571763445661, -0.03990107532727405, -0.08537975686394306], [-0.04725968862914487, 0.3516462125678388, -0.12313760895205272], [-0.3192238770476341, -0.0067495248588208545, -0.45779316426328687], [0.2730786166118322, 0.06453656113465944, -0.01530615283103176]],
+                [[-0.07998418694311427, 0.19729937490029037, 0.06739429707395683], [-0.07082940540173965, -0.21955363061383965, 0.412806916526937], [0.04798679923829818, 0.4761807498607096, -0.010111564381819371], [0.2730786166118322, 0.06453656113465944, -0.01530615283103176]],
+                [[-0.04725968862914487, 0.3516462125678388, -0.12313760895205272], [-0.07998418694311427, 0.19729937490029037, 0.06739429707395683], [0.04798679923829818, 0.4761807498607096, -0.010111564381819371], [0.2730786166118322, 0.06453656113465944, -0.01530615283103176]],
+                [[-0.12150571763445661, -0.03990107532727405, -0.08537975686394306], [-0.07998418694311427, 0.19729937490029037, 0.06739429707395683], [-0.04725968862914487, 0.3516462125678388, -0.12313760895205272], [0.2730786166118322, 0.06453656113465944, -0.01530615283103176]],
+                [[-0.12150571763445661, -0.03990107532727405, -0.08537975686394306], [0.2730786166118322, 0.06453656113465944, -0.01530615283103176], [-0.3192238770476341, -0.0067495248588208545, -0.45779316426328687], [0.038053334853741405, -0.45937873618870206, -0.09889301224830771]],
+                [[-0.12150571763445661, -0.03990107532727405, -0.08537975686394306], [-0.3192238770476341, -0.0067495248588208545, -0.45779316426328687], [-0.07082940540173965, -0.21955363061383965, 0.412806916526937], [0.038053334853741405, -0.45937873618870206, -0.09889301224830771]],
+                [[-0.12150571763445661, -0.03990107532727405, -0.08537975686394306], [-0.07082940540173965, -0.21955363061383965, 0.412806916526937], [0.22292364004203769, -0.09745743275599683, 0.05550159697839596], [0.038053334853741405, -0.45937873618870206, -0.09889301224830771]],
+            ]
+        );
     }
 }

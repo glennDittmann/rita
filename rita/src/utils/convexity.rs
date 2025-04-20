@@ -1,11 +1,9 @@
+use super::types::Vertex2;
+use geogram_predicates as gp;
 use std::cmp;
 
-use geogram_predicates as gp;
-
-use super::types::Vertex2;
-
 /// Checks if ang(v1--v0, v1--v2) is convex, flat, or concave
-pub fn is_convex(v0: Vertex2, v1: Vertex2, v2: Vertex2) -> bool {
+pub(crate) fn is_convex(v0: Vertex2, v1: Vertex2, v2: Vertex2) -> bool {
     // true <-> used to return 1
     let sign = gp::orient_2d(&v0, &v1, &v2);
 

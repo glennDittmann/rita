@@ -29,29 +29,20 @@ pub fn show(
 }
 
 fn draw_triangles(plot_ui: &mut PlotUi, triangulation_data: &mut TriangulationData) {
-    for i in 0..triangulation_data.triangulation.tds().num_tris() {
-        let tri = triangulation_data.triangulation.tds().get_tri(i).unwrap();
-        let [n0, n1, n2] = tri.nodes();
-
-        if !tri.is_conceptual() {
-            let v0 = triangulation_data.vertices[n0.idx().unwrap()];
-            let v1 = triangulation_data.vertices[n1.idx().unwrap()];
-            let v2 = triangulation_data.vertices[n2.idx().unwrap()];
-
-            plot_ui.polygon(
-                Polygon::new(vec![v0, v1, v2])
-                    .name(format!("Triangle {}", i))
-                    .fill_color(Color32::from_rgba_premultiplied(46, 128, 115, 2))
-                    .width(1.0),
-            );
-        }
+    for (i, [a, b, c]) in triangulation_data.triangulation.tris().into_iter().enumerate() {
+        plot_ui.polygon(
+            // todo use borrowed series
+            Polygon::new(format!("Triangle {i}"), vec![a, b, c])
+                .fill_color(Color32::from_rgba_premultiplied(46, 128, 115, 2))
+                .width(1.0),
+        );
     }
 }
 
-fn draw_points(
-    plot_ui: &mut PlotUi,
+fn draw_points<'pl>(
+    plot_ui: &mut PlotUi<'pl>,
     plot_settings: &mut PlotSettings,
-    triangulation_data: &mut TriangulationData,
+    triangulation_data: &'pl mut TriangulationData,
 ) {
     let (points_to_add, highlighted_point, points_added) =
         debug_vertex_markers(plot_settings, triangulation_data);
@@ -62,13 +53,13 @@ fn draw_points(
 }
 
 /// Create the plot markers for the input vertices for debugging, i.e. the currently inserted vertex is highlighted.
-fn debug_vertex_markers(
+fn debug_vertex_markers<'p>(
     plot_settings: &mut PlotSettings,
-    triangulation_data: &mut TriangulationData,
-) -> (Points, Points, Points) {
-    let mut points_to_add: Vec<[f64; 2]> = vec![];
-    let mut point_highlighted: Vec<[f64; 2]> = vec![];
-    let mut points_added: Vec<[f64; 2]> = vec![];
+    triangulation_data: &'p mut TriangulationData,
+) -> (Points<'p>, Points<'p>, Points<'p>) {
+    let mut points_to_add: Vec<[f64; 2]> = Vec::new();
+    let mut point_highlighted: Vec<[f64; 2]> = Vec::new();
+    let mut points_added: Vec<[f64; 2]> = Vec::new();
 
     for i in 0..triangulation_data.vertices.len() {
         match plot_settings.cache_timestep_to_display.cmp(&(i + 1)) {
@@ -93,20 +84,17 @@ fn debug_vertex_markers(
         }
     }
 
-    let points_to_add = Points::new(points_to_add)
-        .name("Vertices to add")
+    let points_to_add = Points::new("Vertices to add", points_to_add)
         .filled(plot_settings.marker_style.fill_markers)
         .radius(plot_settings.marker_style.marker_radius)
         .color(Color32::GRAY);
 
-    let point_highlighted = Points::new(point_highlighted)
-        .name("Current Vertex")
+    let point_highlighted = Points::new("Current Vertex", point_highlighted)
         .filled(plot_settings.marker_style.fill_markers)
         .radius(plot_settings.marker_style.marker_radius)
         .color(Color32::RED);
 
-    let points_added = Points::new(points_added)
-        .name("Added Vertices")
+    let points_added = Points::new("Added Vertices", points_added)
         .filled(plot_settings.marker_style.fill_markers)
         .radius(plot_settings.marker_style.marker_radius)
         .color(Color32::BLACK);

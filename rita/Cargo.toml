@@ -2,9 +2,9 @@
 name = "rita"
 version = "0.1.7"
 edition = "2021"
-rust-version = "1.73.0"
+rust-version = "1.75.0"
 
-description = "Randomized Incremental Triangulation Algorithms"
+description = "2D and 3D Randomized Incremental Triangulation Algorithms"
 keywords = [
     "computer-graphics",
     "triangulations",
@@ -12,6 +12,8 @@ keywords = [
     "geometry",
     "math",
 ]
+categories = ["algorithms", "graphics"]
+
 repository = "https://github.com/glennDittmann/rita"
 authors = ["Glenn Dittmann <glenn.dittmann@posteo.de>"]
 license = "MIT"
@@ -23,6 +25,8 @@ anyhow = "1.0"
 geogram_predicates = "0.2.1"
 log = "0.4"
 nalgebra = "0.33"
-rand = "0.9"
-rand_distr = "0.5"
 rayon = "1.10"
+arbitrary = { version = "1.4", optional = true , features = ["derive"] }
+
+[dev-dependencies]
+rita_test_utils = { version = "0.1", path = "../rita_test_utils" }

@@ -1,0 +1,24 @@
+name: Rust
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+    paths-ignore:  # Don't run CI when changes are only to the following paths
+    - "rita/**"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-rita_lab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+
+      - name: fmt
+        run: cargo fmt --check -p rita_lab
+        continue-on-error: true
+      - name: clippy
+        run: cargo clippy -p rita_lab
