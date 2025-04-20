@@ -226,12 +226,12 @@ fn triangulation_computer(
                 let (param_name, param_range, drag_speed) = ("Epsilon", 0.0..=50.0, 0.05);
                 ui.add(
                     egui::Slider::new(&mut triangulation_data.epsilon, param_range)
-                        .prefix(format!("{}: ", param_name))
+                        .prefix(format!("{param_name}: "))
                         .drag_value_speed(drag_speed),
                 );
                 if ui
                     .button("↺")
-                    .on_hover_text(format!("Reset {} to 0.0", param_name))
+                    .on_hover_text(format!("Reset {param_name} to 0.0"))
                     .clicked()
                 {
                     triangulation_data.epsilon = 0.0;
@@ -322,7 +322,7 @@ fn triangle_list(ui: &mut Ui, triangulation_data: &TriangulationData) {
                     .max_height(200.0)
                     .show(ui, |ui| {
                         for i in 0..triangulation_data.triangulation.tds().num_tris() {
-                            ui.collapsing(format!("Triangle {}", i), |ui| {
+                            ui.collapsing(format!("Triangle {i}"), |ui| {
                                 ui.vertical(|ui| {
                                     let tri =
                                         triangulation_data.triangulation.tds().get_tri(i).unwrap();

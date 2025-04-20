@@ -76,7 +76,7 @@ pub fn bbox_2d(vertices: &[Vertex2]) -> (Vertex2, Vertex2) {
     let mut min = [f64::INFINITY, f64::INFINITY];
     let mut max = [f64::NEG_INFINITY, f64::NEG_INFINITY];
 
-    for v in vertices.iter() {
+    for v in vertices {
         min[0] = min[0].min(v[0]);
         min[1] = min[1].min(v[1]);
         max[0] = max[0].max(v[0]);

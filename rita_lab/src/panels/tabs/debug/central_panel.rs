@@ -39,7 +39,8 @@ fn draw_triangles(plot_ui: &mut PlotUi, triangulation_data: &mut TriangulationDa
             let v2 = triangulation_data.vertices[n2.idx().unwrap()];
 
             plot_ui.polygon(
-                Polygon::new(format!("Triangle {}", i), vec![v0, v1, v2])
+                // todo use borrowed series
+                Polygon::new(format!("Triangle {i}"), vec![v0, v1, v2])
                     .fill_color(Color32::from_rgba_premultiplied(46, 128, 115, 2))
                     .width(1.0),
             );
