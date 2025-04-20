@@ -7,7 +7,8 @@ use super::{
 
 // For each tri idx within a tet, associate list of vertex idx triples, i.e. the face indices
 /// For each triangle index within tetrahedron, associate list of vertices within tetrahedron
-pub(crate) const TRIANGLE_SUBINDICES: [[usize; 3]; 4] = [[1, 3, 2], [0, 2, 3], [0, 3, 1], [0, 1, 2]];
+pub(crate) const TRIANGLE_SUBINDICES: [[usize; 3]; 4] =
+    [[1, 3, 2], [0, 2, 3], [0, 3, 1], [0, 1, 2]];
 
 /// For each triangle index, for each halfedge index, associate triangle and halfedge index within
 /// tetrahedron
@@ -362,7 +363,8 @@ impl TetDataStructure {
                             let ind_tri2 = he_cur.tri().idx();
                             let j2 = he_cur.idx();
                             let ind_cur2 = if let Some((i2, _)) = vec_tri.iter()
-                                .enumerate().find(|&(_, &ind)| ind == ind_tri2)
+                                .enumerate()
+                                .find(|&(_, &ind)| ind == ind_tri2)
                             {
                                 i2
                             } else {

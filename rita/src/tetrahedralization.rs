@@ -82,35 +82,28 @@ impl Default for Tetrahedralization {
 /// ```
 #[macro_export]
 macro_rules! tetrahedralization {
-    ($vertices:expr) => {
-        {
-            let mut tetrahedralization = $crate::Tetrahedralization::new_with_vert_capacity(None, $vertices.len());
-            let _ = tetrahedralization.insert_vertices($vertices, None, true);
-            tetrahedralization
-        }
-    };
-    ($vertices:expr, epsilon = $epsilon:expr) => {
-        {
-            let mut tetrahedralization = $crate::Tetrahedralization::new_with_vert_capacity(Some($epsilon), $vertices.len());
-            let _ = tetrahedralization.insert_vertices($vertices, None, true);
-            tetrahedralization
-        }
-    };
+    ($vertices:expr) => {{
+        let mut tetrahedralization =
+            $crate::Tetrahedralization::new_with_vert_capacity(None, $vertices.len());
+        let _ = tetrahedralization.insert_vertices($vertices, None, true);
+        tetrahedralization
+    }};
+    ($vertices:expr, epsilon = $epsilon:expr) => {{
+        let mut tetrahedralization = $crate::Tetrahedralization::new_with_vert_capacity(Some($epsilon), $vertices.len());
+        let _ = tetrahedralization.insert_vertices($vertices, None, true);
+        tetrahedralization
+    }};
     // with weights
-    ($vertices:expr, $weights:expr) => {
-        {
-            let mut tetrahedralization = $crate::Tetrahedralization::new_with_vert_capacity(None, $vertices.len());
-            let _ = tetrahedralization.insert_vertices($vertices, Some($weights), true);
-            tetrahedralization
-        }
-    };
-    ($vertices:expr, $weights:expr, epsilon = $epsilon:expr) => {
-        {
-            let mut tetrahedralization = $crate::Tetrahedralization::new_with_vert_capacity(Some($epsilon), $vertices.len());
-            let _ = tetrahedralization.insert_vertices($vertices, Some($weights), true);
-            tetrahedralization
-        }
-    };
+    ($vertices:expr, $weights:expr) => {{
+        let mut tetrahedralization = $crate::Tetrahedralization::new_with_vert_capacity(None, $vertices.len());
+        let _ = tetrahedralization.insert_vertices($vertices, Some($weights), true);
+        tetrahedralization
+    }};
+    ($vertices:expr, $weights:expr, epsilon = $epsilon:expr) => {{
+        let mut tetrahedralization = $crate::Tetrahedralization::new_with_vert_capacity(Some($epsilon), $vertices.len());
+        let _ = tetrahedralization.insert_vertices($vertices, Some($weights), true);
+        tetrahedralization
+    }};
 }
 
 impl Tetrahedralization {
@@ -508,7 +501,11 @@ impl Tetrahedralization {
         Ok(new_tets[0])
     }
 
-    fn insert_first_tet(&mut self, idxs_to_insert: &mut Vec<usize>, spatial_sorting: bool) -> Result<()> {
+    fn insert_first_tet(
+        &mut self,
+        idxs_to_insert: &mut Vec<usize>,
+        spatial_sorting: bool,
+    ) -> Result<()> {
         let now = std::time::Instant::now();
 
         // first tetrahedron insertion
@@ -845,16 +842,17 @@ impl std::fmt::Display for Tetrahedralization {
 impl<'a> arbitrary::Arbitrary<'a> for Tetrahedralization {
     fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
         let vertices_len = u.arbitrary_len::<[[f64; 3]; 4]>()?;
-        let mut tetrahedralization = Tetrahedralization::new_with_vert_capacity(*u.choose(&[Some(1e-9), Some(1e-10), Some(1e-11), Some(1e-12), None])?, vertices_len);
+        let mut tetrahedralization = Tetrahedralization::new_with_vert_capacity(
+            *u.choose(&[Some(1e-9), Some(1e-10), Some(1e-11), Some(1e-12), None])?,
+            vertices_len,
+        );
 
         let mut vertices = u.arbitrary::<Vec<[f64; 3]>>()?;
         // make sure it's not empty
         vertices.push(u.arbitrary::<[f64; 3]>()?);
 
         let _ = tetrahedralization.insert_vertices(
-            &vertices,
-            None,
-            *u.choose(&[true, false])?
+            &vertices, None, *u.choose(&[true, false])?
         );
 
         Ok(tetrahedralization)
@@ -1014,7 +1012,7 @@ mod tests {
             [4.105, -1.8, -9.71],
             [5.3, -3.2, 2.68],
             [7.62, 5.3, -1.57],
-            [7.28, 4.9, -1.81]
+            [7.28, 4.9, -1.81],
         ];
 
         assert_eq!(

@@ -101,35 +101,27 @@ impl Default for Triangulation {
 /// ```
 #[macro_export]
 macro_rules! triangulation {
-    ($vertices:expr) => {
-        {
-            let mut triangulation = $crate::Triangulation::new_with_vert_capacity(None, $vertices.len());
-            let _ = triangulation.insert_vertices($vertices, None, true);
-            triangulation
-        }
-    };
-    ($vertices:expr, epsilon = $epsilon:expr) => {
-        {
-            let mut triangulation = $crate::Triangulation::new_with_vert_capacity(Some($epsilon), $vertices.len());
-            let _ = triangulation.insert_vertices($vertices, None, true);
-            triangulation
-        }
-    };
+    ($vertices:expr) => {{
+        let mut triangulation = $crate::Triangulation::new_with_vert_capacity(None, $vertices.len());
+        let _ = triangulation.insert_vertices($vertices, None, true);
+        triangulation
+    }};
+    ($vertices:expr, epsilon = $epsilon:expr) => {{
+        let mut triangulation = $crate::Triangulation::new_with_vert_capacity(Some($epsilon), $vertices.len());
+        let _ = triangulation.insert_vertices($vertices, None, true);
+        triangulation
+    }};
     // with weights
-    ($vertices:expr, $weights:expr) => {
-        {
-            let mut triangulation = $crate::Triangulation::new_with_vert_capacity(None, $vertices.len());
-            let _ = triangulation.insert_vertices($vertices, Some($weights), true);
-            triangulation
-        }
-    };
-    ($vertices:expr, $weights:expr, epsilon = $epsilon:expr) => {
-        {
-            let mut triangulation = $crate::Triangulation::new_with_vert_capacity(Some($epsilon), $vertices.len());
-            let _ = triangulation.insert_vertices($vertices, Some($weights), true);
-            triangulation
-        }
-    };
+    ($vertices:expr, $weights:expr) => {{
+        let mut triangulation = $crate::Triangulation::new_with_vert_capacity(None, $vertices.len());
+        let _ = triangulation.insert_vertices($vertices, Some($weights), true);
+        triangulation
+    }};
+    ($vertices:expr, $weights:expr, epsilon = $epsilon:expr) => {{
+        let mut triangulation = $crate::Triangulation::new_with_vert_capacity(Some($epsilon), $vertices.len());
+        let _ = triangulation.insert_vertices($vertices, Some($weights), true);
+        triangulation
+    }};
 }
 
 impl Triangulation {
@@ -1193,16 +1185,17 @@ impl Eq for Triangulation {}
 impl<'a> arbitrary::Arbitrary<'a> for Triangulation {
     fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
         let vertices_len = u.arbitrary_len::<[[f64; 2]; 3]>()?;
-        let mut triangulation = Triangulation::new_with_vert_capacity(*u.choose(&[Some(1e-9), Some(1e-10), Some(1e-11), Some(1e-12), None])?, vertices_len);
+        let mut triangulation = Triangulation::new_with_vert_capacity(
+            *u.choose(&[Some(1e-9), Some(1e-10), Some(1e-11), Some(1e-12), None])?,
+            vertices_len,
+        );
 
         let mut vertices = u.arbitrary::<Vec<[f64; 2]>>()?;
         // make sure it's not empty
         vertices.push(u.arbitrary::<[f64; 2]>()?);
 
         let _ = triangulation.insert_vertices(
-            &vertices,
-            None,
-            *u.choose(&[true, false])?
+            &vertices, None, *u.choose(&[true, false])?
         );
 
         arbitrary::Result::Ok(triangulation)
@@ -1396,7 +1389,7 @@ mod tests {
             [6.0, -3.46],
             [4.7, 91.5],
             [6.7, 3.6],
-            [-3.7, -40.3]
+            [-3.7, -40.3],
         ];
 
         assert_eq!(
@@ -1429,7 +1422,7 @@ mod tests {
             [0.3504827256051506, -0.19027659995331642],
             [-0.28683831662024745, 0.4111240123491553],
             [0.37042241707160173, 0.18423333136526698],
-            [-0.3855198542371303, -0.44705493099901394]
+            [-0.3855198542371303, -0.44705493099901394],
         ];
 
         assert_eq!(
@@ -1444,7 +1437,7 @@ mod tests {
                 [[0.37042241707160173, 0.18423333136526698], [0.36490258549176935, 0.1365021615193457], [0.44217013845102393, -0.055915696282054284]],
                 [[0.36490258549176935, 0.1365021615193457], [0.24723377358550735, 0.2100464123915723], [0.3504827256051506, -0.19027659995331642]],
                 [[0.44217013845102393, -0.055915696282054284], [0.36490258549176935, 0.1365021615193457], [0.3504827256051506, -0.19027659995331642]],
-                [[0.3504827256051506, -0.19027659995331642], [0.4250889854947786, -0.11789966697253218], [0.44217013845102393, -0.055915696282054284]]
+                [[0.3504827256051506, -0.19027659995331642], [0.4250889854947786, -0.11789966697253218], [0.44217013845102393, -0.055915696282054284]],
             ]
         );
     }

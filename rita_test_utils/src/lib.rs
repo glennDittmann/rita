@@ -3,9 +3,9 @@
 #![deny(unused)]
 #![warn(clippy::all, clippy::missing_const_for_fn)]
 
-use std::ops::RangeInclusive;
 use rand::{distr::Uniform, prelude::Distribution};
 use rand_distr::Normal;
+use std::ops::RangeInclusive;
 
 pub type Vertex2 = [f64; 2];
 pub type Vertex3 = [f64; 3];

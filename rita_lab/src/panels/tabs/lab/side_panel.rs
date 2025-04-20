@@ -133,8 +133,10 @@ fn vertex_generator(
                             triangulation_data.weights = None;
                         }
                         VertexGenerator::RandomWeighted => {
-                            triangulation_data.vertices =
-                                sample_vertices_2d(triangulation_data.number_vertices, Some(VERTEX_RANGE));
+                            triangulation_data.vertices = sample_vertices_2d(
+                                triangulation_data.number_vertices,
+                                Some(VERTEX_RANGE),
+                            );
                             triangulation_data.weights =
                                 Some(sample_weights(triangulation_data.number_vertices, None));
                         }
