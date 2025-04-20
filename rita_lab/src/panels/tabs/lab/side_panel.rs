@@ -120,19 +120,21 @@ fn vertex_generator(
             // Generate and delete buttons
             ui.horizontal(|ui| {
                 if ui.button("Generate vertices").clicked() {
+                    const VERTEX_RANGE: RangeInclusive<f64> = RangeInclusive::new(1.0, 2.0);
+
                     triangulation_data.metrics.reset();
                     triangulation_data.grid_sampler = None;
                     match triangulation_data.vertex_generator {
                         VertexGenerator::Random => {
                             triangulation_data.vertices = sample_vertices_2d(
                                 triangulation_data.number_vertices,
-                                Some(RangeInclusive::new(1.0, 2.0)),
+                                Some(VERTEX_RANGE),
                             );
                             triangulation_data.weights = None;
                         }
                         VertexGenerator::RandomWeighted => {
                             triangulation_data.vertices =
-                                sample_vertices_2d(triangulation_data.number_vertices, None);
+                                sample_vertices_2d(triangulation_data.number_vertices, Some(VERTEX_RANGE));
                             triangulation_data.weights =
                                 Some(sample_weights(triangulation_data.number_vertices, None));
                         }
@@ -219,7 +221,7 @@ fn triangulation_computer(
         ui.vertical(|ui| {
             // Set the epsilon parameter
             ui.horizontal(|ui| {
-                let (param_name, param_range, drag_speed) = ("Epsilon", 0.0..=100.0, 0.1);
+                let (param_name, param_range, drag_speed) = ("Epsilon", 0.0..=50.0, 0.05);
                 ui.add(
                     egui::Slider::new(&mut triangulation_data.epsilon, param_range)
                         .prefix(format!("{}: ", param_name))

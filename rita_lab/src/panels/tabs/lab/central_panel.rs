@@ -1,5 +1,5 @@
 use egui::{Color32, Context, Stroke};
-use egui_plot::{Legend, Plot, PlotPoint, PlotPoints, PlotResponse, PlotUi, Points, Polygon};
+use egui_plot::{Legend, Plot, PlotResponse, PlotUi, Points, Polygon};
 use vertex_clustering::VertexClusterer2;
 
 use crate::types::{PlotSettings, TriangulationData, Vertex2, ORANGE, TRI_GREEN};
@@ -66,7 +66,8 @@ pub fn show(
 fn draw_triangles(triangulation_data: &mut TriangulationData, plot_ui: &mut PlotUi) {
     for [a, b, c] in triangulation_data.triangulation.tris() {
         plot_ui.polygon(
-            Polygon::new(vec![a, b, c])
+            // todo use borrowed series
+            Polygon::new("", vec![a, b, c])
                 .stroke(Stroke::new(1.0, TRI_GREEN))
                 .width(1.0),
         );
