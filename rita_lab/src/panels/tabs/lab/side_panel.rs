@@ -260,8 +260,8 @@ fn triangulation_computer(
                         )
                     });
 
-                    log::info!("Triangulation took {} μs", runtime_micros);
-                    triangulation_data.metrics.runtime = runtime_micros as f64;
+                    log::info!("Triangulation took {runtime_micros} μs");
+                    triangulation_data.metrics.runtime = (runtime_micros / 10) as f64 / 100.0;
 
                     let (regular, _) = triangulation_data.triangulation.is_regular().unwrap();
                     triangulation_data.metrics.regular = regular;

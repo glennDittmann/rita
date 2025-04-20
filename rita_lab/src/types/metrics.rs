@@ -10,11 +10,11 @@ pub struct Metrics {
 impl Metrics {
     pub fn to_label(&self, ui: &mut Ui) {
         if self.runtime > 0.0 {
-            ui.label(format!("Runtime (μs): {}", self.runtime));
+            ui.label(format!("Runtime (ms): {}", self.runtime));
             ui.label(format!("Regular: {}", self.regular));
             ui.label(format!("Sound: {}", self.sound));
         } else {
-            ui.label("Runtime (μs): -".to_string());
+            ui.label("Runtime (ms): -".to_string());
             ui.label("Regular: -".to_string());
             ui.label("Sound: -".to_string());
         }
