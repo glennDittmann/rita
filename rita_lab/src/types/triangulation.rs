@@ -2,10 +2,9 @@ use rita::Triangulation;
 use vertex_clustering::VertexClusterer2;
 
 use crate::panels::tabs::lab::side_panel::VertexGenerator;
-
 use super::{Metrics, Vertex2};
 
-/// Global triangulatio settings. Note: atm still a bit convoluted.
+/// Global triangulation settings. Note: atm still a bit convoluted.
 #[derive(PartialEq)]
 pub struct TriangulationData {
     pub baseline_area3d: Option<f64>,

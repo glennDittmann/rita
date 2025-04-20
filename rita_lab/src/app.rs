@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{
     panels::{tabs::tab_handler, top_panel},
     types::{AppSettings, FileHandler, PlotSettings, Tab, TriangulationData},
@@ -5,12 +7,14 @@ use crate::{
 
 const SHOW_WINDOW: bool = false;
 
-#[derive(Default, PartialEq)]
+#[derive(Default, PartialEq, Serialize, Deserialize)]
 pub struct TriangulationApp {
     pub app_settings: AppSettings,
+    #[serde(skip, default)]
     pub file_handler: FileHandler,
     pub open_tab: Tab,
     pub plot_settings: PlotSettings,
+    #[serde(skip, default)]
     pub triangulation_data: TriangulationData,
 }
 
@@ -19,23 +23,17 @@ impl TriangulationApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // Load previous app state (if any).
         if let Some(storage) = cc.storage {
-            if let Some((app_settings, open_tab)) = eframe::get_value(storage, eframe::APP_KEY) {
-                return Self {
-                    app_settings,
-                    open_tab,
-                    ..Default::default()
-                };
-            }
-        };
-
-        Self::default()
+            eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
+        } else {
+            Self::default()
+        }
     }
 }
 
 impl eframe::App for TriangulationApp {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, &(&self.app_settings, &self.open_tab));
+        eframe::set_value(storage, eframe::APP_KEY, &self);
     }
 
     /// Called each time the UI needs repainting, which may be many times per second.
