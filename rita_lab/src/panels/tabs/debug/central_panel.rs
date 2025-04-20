@@ -29,22 +29,13 @@ pub fn show(
 }
 
 fn draw_triangles(plot_ui: &mut PlotUi, triangulation_data: &mut TriangulationData) {
-    for i in 0..triangulation_data.triangulation.tds().num_tris() {
-        let tri = triangulation_data.triangulation.tds().get_tri(i).unwrap();
-        let [n0, n1, n2] = tri.nodes();
-
-        if !tri.is_conceptual() {
-            let v0 = triangulation_data.vertices[n0.idx().unwrap()];
-            let v1 = triangulation_data.vertices[n1.idx().unwrap()];
-            let v2 = triangulation_data.vertices[n2.idx().unwrap()];
-
-            plot_ui.polygon(
-                // todo use borrowed series
-                Polygon::new(format!("Triangle {i}"), vec![v0, v1, v2])
-                    .fill_color(Color32::from_rgba_premultiplied(46, 128, 115, 2))
-                    .width(1.0),
-            );
-        }
+    for (i, [a, b, c]) in triangulation_data.triangulation.tris().into_iter().enumerate() {
+        plot_ui.polygon(
+            // todo use borrowed series
+            Polygon::new(format!("Triangle {i}"), vec![a, b, c])
+                .fill_color(Color32::from_rgba_premultiplied(46, 128, 115, 2))
+                .width(1.0),
+        );
     }
 }
 
