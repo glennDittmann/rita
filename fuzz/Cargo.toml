@@ -4,6 +4,9 @@ version = "0.0.0"
 publish = false
 edition = "2021"
 
+# run this with cargo fuzz
+# Some good args to start with: `-O -a --strip-dead-code -- -max_len=5000`
+
 [package.metadata]
 cargo-fuzz = true
 

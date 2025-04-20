@@ -26,7 +26,7 @@ geogram_predicates = "0.2.1"
 log = "0.4"
 nalgebra = "0.33"
 rayon = "1.10"
-arbitrary = { version = "1.4", optional = true }
+arbitrary = { version = "1.4", optional = true , features = ["derive"] }
 
 [dev-dependencies]
 rita_test_utils = { version = "0.1", path = "../rita_test_utils" }

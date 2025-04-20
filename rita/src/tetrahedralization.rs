@@ -8,7 +8,7 @@ use crate::{
     },
     VertexNode,
 };
-use anyhow::Result;
+use anyhow::Result as HowResult;
 use geogram_predicates as gp;
 use log::error;
 use rayon::prelude::*;
@@ -46,6 +46,7 @@ pub enum ExtendedTetrahedron {
 /// assert_eq!(tetrahedralization.par_is_regular(false), 1.0);
 /// ```
 #[derive(Debug)]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct Tetrahedralization {
     epsilon: Option<f64>,
     tds: TetDataStructure,
@@ -56,8 +57,10 @@ pub struct Tetrahedralization {
     time_walking: u128,
     time_inserting: u128,
     /// Indices of vertices that are inserted, i.e. not skipped due to epsilon
+    #[cfg_attr(feature = "arbitrary", arbitrary(default))]
     used_vertices: Vec<VertexIdx>,
     /// Indices of vertices that are ignored, i.e. skipped due to epsilon
+    #[cfg_attr(feature = "arbitrary", arbitrary(default))]
     ignored_vertices: Vec<VertexIdx>,
 }
 
@@ -199,7 +202,7 @@ impl Tetrahedralization {
     }
 
     /// Gets extended tetrahedron from index
-    pub fn get_tet_as_extended(&self, tet_idx: usize) -> Result<ExtendedTetrahedron> {
+    pub fn get_tet_as_extended(&self, tet_idx: usize) -> HowResult<ExtendedTetrahedron> {
         let [node0, node1, node2, node3] = self.tds().get_tet(tet_idx)?.nodes();
 
         let ext_tri = match (node0, node1, node2, node3) {
@@ -267,7 +270,7 @@ impl Tetrahedralization {
         Ok(ext_tri)
     }
 
-    pub fn is_v_in_sphere(&self, v_idx: usize, tet_idx: usize, strict: bool) -> Result<bool> {
+    pub fn is_v_in_sphere(&self, v_idx: usize, tet_idx: usize, strict: bool) -> HowResult<bool> {
         let p = self.vertices[v_idx];
 
         let ext_tet = self.get_tet_as_extended(tet_idx)?;
@@ -287,7 +290,7 @@ impl Tetrahedralization {
         }
     }
 
-    fn is_v_in_powersphere(&self, v_idx: usize, tet_idx: usize, strict: bool) -> Result<bool> {
+    fn is_v_in_powersphere(&self, v_idx: usize, tet_idx: usize, strict: bool) -> HowResult<bool> {
         let p = self.vertices[v_idx];
         let h_p = self.height(v_idx);
 
@@ -315,7 +318,7 @@ impl Tetrahedralization {
         }
     }
 
-    fn is_v_in_eps_powersphere(&self, v_idx: usize, tet_idx: usize) -> Result<bool> {
+    fn is_v_in_eps_powersphere(&self, v_idx: usize, tet_idx: usize) -> HowResult<bool> {
         let p = self.vertices[v_idx];
 
         let h_p = if self.epsilon.is_some() {
@@ -345,7 +348,7 @@ impl Tetrahedralization {
         }
     }
 
-    fn is_tet_flat(&self, tet_idx: usize) -> Result<bool> {
+    fn is_tet_flat(&self, tet_idx: usize) -> HowResult<bool> {
         let ext_tri = self.get_tet_as_extended(tet_idx)?;
 
         // TODO: completely cover this with match
@@ -391,7 +394,7 @@ impl Tetrahedralization {
         None
     }
 
-    fn walk_check_all(&self, v_idx: usize) -> Result<usize> {
+    fn walk_check_all(&self, v_idx: usize) -> HowResult<usize> {
         for curr_tet_idx in 0..self.tds().num_tets() {
             if self.is_tet_flat(curr_tet_idx)? {
                 continue;
@@ -405,7 +408,7 @@ impl Tetrahedralization {
         Err(anyhow::Error::msg("Could not find sphere containing point"))
     }
 
-    fn locate_vis_walk(&self, v_idx: usize, starting_tet_idx: usize) -> Result<usize> {
+    fn locate_vis_walk(&self, v_idx: usize, starting_tet_idx: usize) -> HowResult<usize> {
         let v = self.vertices[v_idx];
 
         let mut curr_tet_idx = starting_tet_idx;
@@ -444,7 +447,7 @@ impl Tetrahedralization {
     }
 
     /// Inserts point using Bowyer Watson method
-    fn insert_bw(&mut self, v_idx: usize, first_tet_idx: usize) -> Result<Vec<usize>> {
+    fn insert_bw(&mut self, v_idx: usize, first_tet_idx: usize) -> HowResult<Vec<usize>> {
         self.tds.bw_start(first_tet_idx)?;
 
         while let Some(tet_idx) = self.tds.bw_tets_to_check() {
@@ -459,7 +462,7 @@ impl Tetrahedralization {
         self.tds.bw_insert_node(node)
     }
 
-    fn insert_vertex_helper(&mut self, v_idx: usize, near_to_idx: usize) -> Result<usize> {
+    fn insert_vertex_helper(&mut self, v_idx: usize, near_to_idx: usize) -> HowResult<usize> {
         // Locating vertex via vis walk
         let now = std::time::Instant::now();
 
@@ -505,7 +508,7 @@ impl Tetrahedralization {
         &mut self,
         idxs_to_insert: &mut Vec<usize>,
         spatial_sorting: bool,
-    ) -> Result<()> {
+    ) -> HowResult<()> {
         let now = std::time::Instant::now();
 
         // first tetrahedron insertion
@@ -580,7 +583,7 @@ impl Tetrahedralization {
     ///
     /// ## Errors
     /// Returns an error if `self` does not have any triangles in it.
-    pub fn insert_vertex(&mut self, v: [f64; 3], near_to_idx: Option<usize>) -> Result<()> {
+    pub fn insert_vertex(&mut self, v: [f64; 3], near_to_idx: Option<usize>) -> HowResult<()> {
         if self.tds.num_tets() == 0 {
             return Err(anyhow::Error::msg(
                 "Needs at least 1 tetrahedron to insert a single point",
@@ -609,7 +612,7 @@ impl Tetrahedralization {
         vertices: &[[f64; 3]],
         weights: Option<Vec<f64>>,
         spatial_sorting: bool,
-    ) -> Result<()> {
+    ) -> HowResult<()> {
         let mut idxs_to_insert = Vec::with_capacity(vertices.len());
 
         for &v in vertices {
@@ -650,7 +653,7 @@ impl Tetrahedralization {
     }
 
     /// Check if the tetrahedralization is valid, i.e. no vertices are inside the circumsphere of any tetrahedron
-    pub fn is_regular(&self) -> Result<(bool, f64)> {
+    pub fn is_regular(&self) -> HowResult<(bool, f64)> {
         let mut regular = true;
         let mut num_violated_tets = 0;
 
@@ -744,7 +747,7 @@ impl Tetrahedralization {
         &self,
         vertices: &[[f64; 3]],
         weights: Option<Vec<f64>>,
-    ) -> Result<(bool, f64)> {
+    ) -> HowResult<(bool, f64)> {
         let mut regular = true;
         let mut num_violated_tets = 0;
 
@@ -808,7 +811,7 @@ impl Tetrahedralization {
         ))
     }
 
-    pub fn is_sound(&self) -> Result<bool> {
+    pub fn is_sound(&self) -> HowResult<bool> {
         match self.tds().is_sound() {
             Ok(true) => Ok(true),
             Ok(false) => {
@@ -835,27 +838,6 @@ impl std::fmt::Display for Tetrahedralization {
             self.vertices.len(),
             self.tds.num_tets()
         )
-    }
-}
-
-#[cfg(feature = "arbitrary")]
-impl<'a> arbitrary::Arbitrary<'a> for Tetrahedralization {
-    fn arbitrary(u: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
-        let vertices_len = u.arbitrary_len::<[[f64; 3]; 4]>()?;
-        let mut tetrahedralization = Tetrahedralization::new_with_vert_capacity(
-            *u.choose(&[Some(1e-9), Some(1e-10), Some(1e-11), Some(1e-12), None])?,
-            vertices_len,
-        );
-
-        let mut vertices = u.arbitrary::<Vec<[f64; 3]>>()?;
-        // make sure it's not empty
-        vertices.push(u.arbitrary::<[f64; 3]>()?);
-
-        let _ = tetrahedralization.insert_vertices(
-            &vertices, None, *u.choose(&[true, false])?
-        );
-
-        Ok(tetrahedralization)
     }
 }
 

@@ -7,6 +7,7 @@ use core::fmt;
 ///
 /// A `conceptual node` is at infinity. Geometric operations are handled accordingly.
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub enum VertexNode {
     /// A node that has an index into the input vertex list.
     Casual(VertexIdx),

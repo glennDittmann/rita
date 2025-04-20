@@ -164,11 +164,12 @@ pub fn sort_along_hilbert_curve_3d(vertices: &[Vertex3], indices_to_add: Vec<usi
                     [[Vec::new(), Vec::new()], [Vec::new(), Vec::new()]],
                 ];
 
-                for &ind in indices_to_add.iter() {
+                for ind in indices_to_add {
                     let vert = vertices[ind];
-                    let xind = if vert[0] < sep_x { 0 } else { 1 } as usize;
-                    let yind = if vert[1] < sep_y { 0 } else { 1 } as usize;
-                    let zind = if vert[2] < sep_z { 0 } else { 1 } as usize;
+                    // FIXME: this needs an explanation
+                    let xind = usize::from(vert[0] >= sep_x);
+                    let yind = usize::from(vert[1] >= sep_y);
+                    let zind = usize::from(vert[2] >= sep_z);
                     sep_ind[xind][yind][zind].push(ind);
                 }
 
@@ -207,6 +208,7 @@ pub fn sort_along_hilbert_curve_3d(vertices: &[Vertex3], indices_to_add: Vec<usi
                         ],
                         vec_inds,
                     ));
+
                     sep_subind[next_modif[i]] = 1 - sep_subind[next_modif[i]];
                     start_ind[next_modif[i]] = 1 - start_ind[next_modif[i]];
                     start_ind[dir[i]] = 1 - start_ind[dir[i]];

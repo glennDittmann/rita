@@ -1,5 +1,5 @@
 use crate::VertexNode;
-use anyhow::{Ok, Result};
+use anyhow::{Ok as HowOk, Result as HowResult};
 
 use super::{
     half_tri_iterator::HalfTriIterator, hedge_iterator::HedgeIterator, tet_iterator::TetIterator,
@@ -42,19 +42,19 @@ pub(crate) const NEIGHBOR_HALFEDGE: [[(usize, usize); 3]; 4] = [
 /// i+3 --> node3 /
 /// ```
 //
-// such that `tri0 = (i+1, i+3, i+2)`
-//
-// such that `tri1 = (i, i+2, i+3)`
-//
-// such that `tri2 = (i, i+3, i+1)`
-//
-// such that `tri3 = (i, i+1, i+2)`
+// where:
+// `tri0 = (i+1, i+3, i+2)`,
+// `tri1 = (i, i+2, i+3)`,
+// `tri2 = (i, i+3, i+1)`,
+// `tri3 = (i, i+1, i+2)`
 #[derive(Debug)]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct TetDataStructure {
     pub tet_nodes: Vec<VertexNode>,
     /// Opposite half triangle index of this tet
     pub(crate) half_tri_opposite: Vec<usize>,
 
+    #[cfg_attr(feature = "arbitrary", arbitrary(default))]
     num_tets: usize,
 
     // structures to speed up tetrahedra insertion with Bowyer Watson algorithm
@@ -104,9 +104,9 @@ impl TetDataStructure {
     }
 
     /// Gets halfedge iterator from index
-    pub fn get_half_tri(&self, half_tri_idx: usize) -> Result<HalfTriIterator> {
+    pub fn get_half_tri(&self, half_tri_idx: usize) -> HowResult<HalfTriIterator> {
         if half_tri_idx < self.half_tri_opposite.len() {
-            Ok(self.half_triangle(half_tri_idx))
+            HowOk(self.half_triangle(half_tri_idx))
         } else {
             Err(anyhow::Error::msg(
                 "Halftriangle value not in tetrahedron data structure",
@@ -142,9 +142,9 @@ impl TetDataStructure {
     }
 
     /// Gets tetrahedron iterator from index
-    pub fn get_tet(&self, ind_tetrahedron: usize) -> Result<TetIterator> {
+    pub fn get_tet(&self, ind_tetrahedron: usize) -> HowResult<TetIterator> {
         if ind_tetrahedron < self.num_tets {
-            Ok(self.tet(ind_tetrahedron))
+            HowOk(self.tet(ind_tetrahedron))
         } else {
             Err(anyhow::Error::msg("Tetrahedron value not in simplicial"))
         }
@@ -264,7 +264,7 @@ impl TetDataStructure {
     }
 
     /// Starts BW insertion, setting a first tetrahedron to remove
-    pub fn bw_start(&mut self, first_tet_idx: usize) -> Result<()> {
+    pub fn bw_start(&mut self, first_tet_idx: usize) -> HowResult<()> {
         if !self.tets_to_check.is_empty() || !self.tets_to_keep.is_empty() {
             return Err(anyhow::Error::msg(
                 "Bowyer Watson algorithm already started",
@@ -273,7 +273,7 @@ impl TetDataStructure {
 
         self.bw_rem_tet(first_tet_idx);
 
-        Ok(())
+        HowOk(())
     }
 
     /// Gets next tetrahedron to check
@@ -308,15 +308,15 @@ impl TetDataStructure {
     }
 
     /// Sets tetrahedron to keep
-    pub fn bw_keep_tetra(&mut self, tet_idx: usize) -> Result<()> {
+    pub fn bw_keep_tetra(&mut self, tet_idx: usize) -> HowResult<()> {
         self.should_keep_tet[tet_idx] = true;
         self.tets_to_keep.push(tet_idx);
 
-        Ok(())
+        HowOk(())
     }
 
     /// BW insertion algorithm
-    pub fn bw_insert_node(&mut self, nod: VertexNode) -> Result<Vec<usize>> {
+    pub fn bw_insert_node(&mut self, nod: VertexNode) -> HowResult<Vec<usize>> {
         if !self.tets_to_check.is_empty() {
             return Err(anyhow::Error::msg(
                 "Cannot insert node if all tetrahedra are not checked",
@@ -463,11 +463,11 @@ impl TetDataStructure {
             self.should_keep_tet[ind_tetra_keep] = false;
         }
 
-        Ok(added_tets)
+        HowOk(added_tets)
     }
 
     /// Clean removed tetrahedra
-    pub fn clean_to_del(&mut self) -> Result<()> {
+    pub fn clean_to_del(&mut self) -> HowResult<()> {
         self.tets_to_del.sort_unstable();
 
         while let Some(tet_to_del_idx) = self.tets_to_del.pop() {
@@ -475,7 +475,7 @@ impl TetDataStructure {
             self.mov_end_tet(tet_to_del_idx)?;
         }
 
-        Ok(())
+        HowOk(())
     }
 
     fn insert_tet(
@@ -521,7 +521,7 @@ impl TetDataStructure {
         (idx0, idx0 + 1, idx0 + 2, idx0 + 3)
     }
 
-    fn mov_end_tet(&mut self, tet_idx: usize) -> Result<()> {
+    fn mov_end_tet(&mut self, tet_idx: usize) -> HowResult<()> {
         if tet_idx != self.num_tets - 1 {
             let opp_tri_idx0 = self.half_tri_opposite[self.half_tri_opposite.len() - 4];
             let opp_tri_idx1 = self.half_tri_opposite[self.half_tri_opposite.len() - 3];
@@ -559,11 +559,11 @@ impl TetDataStructure {
 
         self.num_tets -= 1;
 
-        Ok(())
+        HowOk(())
     }
 
     /// Inserts a first tetrahedron in the structure
-    pub fn insert_first_tet(&mut self, nodes: [usize; 4]) -> Result<[TetIterator; 4]> {
+    pub fn insert_first_tet(&mut self, nodes: [usize; 4]) -> HowResult<[TetIterator; 4]> {
         if self.num_tets != 0 {
             return Err(anyhow::Error::msg("Already tetrahedra in simplicial"));
         }
@@ -603,7 +603,7 @@ impl TetDataStructure {
         self.half_tri_opposite.push(t02i); // t0i2
         self.half_tri_opposite.push(t012); // t021
 
-        Ok([
+        HowOk([
             TetIterator {
                 tds: self,
                 tet_idx: first_tetra,
@@ -624,7 +624,7 @@ impl TetDataStructure {
     }
 
     /// Checks soundness of tetrahedral graph
-    pub fn is_sound(&self) -> Result<bool> {
+    pub fn is_sound(&self) -> HowResult<bool> {
         let mut sound = true;
 
         for tet_idx in 0..self.num_tets() {
@@ -640,7 +640,7 @@ impl TetDataStructure {
             }
         }
 
-        Ok(sound)
+        HowOk(sound)
     }
 }
 
