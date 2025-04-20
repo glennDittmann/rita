@@ -1,6 +1,7 @@
-#[derive(PartialEq)]
+use serde::{Deserialize, Serialize};
 
 /// Global app settings.
+#[derive(PartialEq, Deserialize, Serialize)]
 pub struct AppSettings {
     pub dark_mode: bool,
     pub sidebar_enabled: bool,

@@ -29,9 +29,10 @@ fn main() -> eframe::Result<()> {
 
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
-        "📐 Computer Graphics Lab",
+        // "📐 Computer Graphics Lab", // actual footage of +1 mark
+        "Triangulations GUI",
         native_options,
-        Box::new(|cc| Box::new(app::TriangulationApp::new(cc))),
+        Box::new(|cc| Ok(Box::new(app::TriangulationApp::new(cc)))),
     )
 }
 

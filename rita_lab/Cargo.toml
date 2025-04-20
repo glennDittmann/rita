@@ -25,10 +25,10 @@ rfd = "0.15.3"
 log = "0.4"
 rita_test_utils = { version = "0.1", path = "../rita_test_utils" }
 
-egui = "0.27.2"
-egui_plot = { version = "0.27.2", default-features = false }
-eframe = { version = "0.27.2", default-features = false, features = [
-    "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
+egui = "0.29.1"
+egui_plot = { version = "0.29.0", default-features = false }
+eframe = { version = "0.29.1", features = [
+    "accesskit",     # Make egui comptaible with screen readers.
     "default_fonts", # Embed the default egui fonts.
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
     "persistence",   # Enable restoring app state when restarting the app.

@@ -20,7 +20,7 @@ pub fn show(ctx: &Context, open_tab: &mut Tab, plot_settings: &mut PlotSettings)
 
 fn menu_bar(ctx: &Context, ui: &mut Ui, plot_settings: &mut PlotSettings) {
     egui::menu::bar(ui, |ui| {
-        egui::widgets::global_dark_light_mode_buttons(ui);
+        egui::widgets::global_theme_preference_buttons(ui);
 
         menu_bar_file(ctx, ui);
 
@@ -59,7 +59,7 @@ fn menu_bar_controls(ui: &mut Ui) {
 fn menu_bar_plot_settings(ui: &mut Ui, plot_settings: &mut PlotSettings) {
     ui.collapsing("Plot Settings", |ui| {
         ui.vertical(|ui| {
-            ui.style_mut().wrap = Some(false);
+            ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
             ui.checkbox(&mut plot_settings.square_view, "Square view")
                 .on_hover_text("Always keep the viewport square.");
             ui.checkbox(&mut plot_settings.proportional, "Proportional data axes")

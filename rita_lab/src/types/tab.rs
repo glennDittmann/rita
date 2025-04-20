@@ -1,6 +1,7 @@
-#[derive(PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
 
-// Determine which tab is currently open.
+/// The tab which is currently open.
+#[derive(PartialEq, Eq, Deserialize, Serialize)]
 pub enum Tab {
     Lab,
     Debug,
