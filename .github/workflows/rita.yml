@@ -18,7 +18,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Test
-        run: cargo test -p rita
+        run: cargo test -p rita --features logging
 
   check:
     runs-on: ubuntu-latest
@@ -27,7 +27,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: fmt
-        run: cargo fmt --check -p rita
+        run: cargo fmt --check -p rita --all-features
         continue-on-error: true
-      - name: clippy
-        run: cargo clippy -p rita
+      - name: clippy std
+        run: cargo clippy -p rita --all-features
+      - name: clippy no-std
+        run: cargo clippy -p rita --no-default-features
