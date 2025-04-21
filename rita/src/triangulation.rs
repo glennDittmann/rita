@@ -66,6 +66,9 @@ pub(crate) enum Flip {
 #[derive(Debug)]
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct Triangulation {
+    /// An artificial inverse weight to make points be considered as regular (ie. not lying in a triangles circumcircle).
+    ///
+    /// Even a small epsilon can make the triangulation faster.
     epsilon: Option<f64>,
     pub tds: TriDataStructure,
     pub vertices: Vec<Vertex2>,
@@ -246,7 +249,7 @@ impl Triangulation {
         HowOk(tri_extended)
     }
 
-    /// Gets the height for a vertex
+    /// Gets the height for a vertex, this is affected by weights
     pub fn height(&self, v_idx: VertexIdx) -> f64 {
         self.vertices[v_idx][0].powi(2) + self.vertices[v_idx][1].powi(2)
             - self.weights.as_ref().map_or(0.0, |weights| weights[v_idx])
