@@ -1,5 +1,6 @@
 use core::panic;
-use std::cmp;
+use core::cmp;
+use alloc::{vec::Vec, vec};
 
 // TODO: we could allow the epsilon filter on insertion also allow to happen, when the inserted vertex is in a casual triangle, i.e. outside the c-hull
 // TODO: we could also incorporate that in the 3->1 flip, as to remove points in a later stage of the algo (not just at insertion)
@@ -18,6 +19,7 @@ use crate::{
 };
 use anyhow::{Ok as HowOk, Result as HowResult};
 use geogram_predicates as gp;
+#[cfg(feature = "logging")]
 use log::error;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -68,8 +70,11 @@ pub struct Triangulation {
     pub vertices: Vec<Vertex2>,
     /// The weights of the vertices, `Some` if the vertices are weighted
     pub weights: Option<Vec<f64>>,
+    #[cfg(feature = "timing")]
     time_flipping: u128,
+    #[cfg(feature = "timing")]
     time_inserting: u128,
+    #[cfg(feature = "timing")]
     time_walking: u128,
     last_inserted_triangle: Option<usize>,
     epsilon: Option<f64>,
@@ -135,8 +140,11 @@ impl Triangulation {
             tds: TriDataStructure::new(),
             vertices: Vec::new(),
             weights: None,
+            #[cfg(feature = "timing")]
             time_flipping: 0,
+            #[cfg(feature = "timing")]
             time_inserting: 0,
+            #[cfg(feature = "timing")]
             time_walking: 0,
             last_inserted_triangle: None,
             epsilon,
@@ -152,8 +160,11 @@ impl Triangulation {
             tds: TriDataStructure::new(),
             vertices: Vec::with_capacity(capacity),
             weights: None,
+            #[cfg(feature = "timing")]
             time_flipping: 0,
+            #[cfg(feature = "timing")]
             time_inserting: 0,
+            #[cfg(feature = "timing")]
             time_walking: 0,
             last_inserted_triangle: None,
             epsilon,
@@ -240,6 +251,7 @@ impl Triangulation {
     }
 
     pub fn insert_init_tri(&mut self, v_idxs: &mut Vec<VertexIdx>) -> HowResult<()> {
+        #[cfg(feature = "logging")]
         let now = std::time::Instant::now();
 
         if self.vertices().len() == v_idxs.len() {
@@ -284,6 +296,7 @@ impl Triangulation {
 
         self.last_inserted_triangle = Some(0); // here the first triangle is the last inserted, as it is the initial casual triangle
 
+        #[cfg(feature = "logging")]
         log::trace!(
             "Initial triangle inserted in {:.4} µs",
             now.elapsed().as_micros()
@@ -355,10 +368,12 @@ impl Triangulation {
         }
 
         if spatial_sorting {
+            #[cfg(feature = "logging")]
             let now = std::time::Instant::now();
 
             idxs_to_insert = sort_along_hilbert_curve_2d(&self.vertices, &idxs_to_insert);
 
+            #[cfg(feature = "logging")]
             log::trace!(
                 "Spatial sorting (hilbert curve) computed in {:.4} µs",
                 now.elapsed().as_micros()
@@ -369,6 +384,7 @@ impl Triangulation {
             self.insert_init_tri(&mut idxs_to_insert)?;
         }
 
+        #[cfg(feature = "logging")]
         log::debug!("Inserting {} vertices", idxs_to_insert.len());
 
         while let Some(v_idx) = idxs_to_insert.pop() {
@@ -386,10 +402,12 @@ impl Triangulation {
 
     pub fn insert_v_helper(&mut self, v_idx: usize, near_to: usize) -> HowResult<()> {
         // Perform locate and measure time
+        #[cfg(feature = "timing")]
         let now = std::time::Instant::now();
         let containing_tri_idx = self.locate_vis_walk(v_idx, near_to)?; // the possibly invalid triangle
 
-        self.time_walking += now.elapsed().as_micros();
+        #[cfg(feature = "timing")]
+        { self.time_walking += now.elapsed().as_micros(); }
 
         // Skip vertices that are not in power circle by epsilon (i.e. above the hyperplane)
         // but only if the containing triangle is casual (for now), i.e. the vertex is inside the current convex hull
@@ -410,6 +428,7 @@ impl Triangulation {
         }
         self.used_vertices.push(v_idx);
 
+        #[cfg(feature = "timing")]
         let now = std::time::Instant::now();
         let mut hedges_to_verify = Vec::new();
         let [hedge0, hedge1, hedge2] = self.tds().get_tri(containing_tri_idx)?.hedges();
@@ -419,9 +438,11 @@ impl Triangulation {
 
         let [t0, _, _] = self.tds.flip_1_to_3(containing_tri_idx, v_idx)?;
         self.last_inserted_triangle = Some(t0.idx);
-        self.time_inserting += now.elapsed().as_micros();
+        #[cfg(feature = "timing")]
+        { self.time_inserting += now.elapsed().as_micros() };
 
         // Perform flips and measure time
+        #[cfg(feature = "timing")]
         let now = std::time::Instant::now();
         while let Some(hedge_idx) = hedges_to_verify.pop() {
             if let Some(flip) = self.should_flip_hedge(hedge_idx)? {
@@ -465,12 +486,14 @@ impl Triangulation {
                         hedges_to_verify.push(hedge2.twin().idx);
                     }
                     _ => {
+                        #[cfg(feature = "logging")]
                         log::error!("Unexpected flip type!");
                     }
                 }
             }
         }
-        self.time_flipping += now.elapsed().as_micros();
+        #[cfg(feature = "timing")]
+        { self.time_flipping += now.elapsed().as_micros(); }
         HowOk(())
     }
 
@@ -564,6 +587,7 @@ impl Triangulation {
             }
 
             if self.is_tri_flat(tri_idx)? {
+                #[cfg(feature = "logging")]
                 error!("Flat triangle: {}", self.tds().get_tri(tri_idx)?);
                 regular = false;
                 num_violated_triangles += 1;
@@ -725,6 +749,7 @@ impl Triangulation {
             }
 
             if self.is_tri_flat(tri_idx)? {
+                #[cfg(feature = "logging")]
                 error!("Flat triangle: {}", self.tds().get_tri(tri_idx)?);
                 regular = false;
                 num_violated_triangles += 1;
@@ -772,6 +797,7 @@ impl Triangulation {
         if self.tds().is_sound() {
             HowOk(true)
         } else {
+            #[cfg(feature = "logging")]
             error!("Triangulation is not sound!");
             HowOk(false)
         }
@@ -928,7 +954,7 @@ impl Triangulation {
 
     /// Get the triangulation data structure, as mutable reference.
     #[must_use]
-    pub fn tds_mut(&mut self) -> &mut TriDataStructure {
+    pub const fn tds_mut(&mut self) -> &mut TriDataStructure {
         &mut self.tds
     }
 
@@ -1064,11 +1090,14 @@ impl Triangulation {
     }
 
     fn log_time(&self) {
-        log::debug!("-------------------------------------------");
-        log::debug!("Time elapsed:");
-        log::debug!("Inserts computed in {} μs", self.time_inserting);
-        log::debug!("Walks computed in {} μs", self.time_walking);
-        log::debug!("Flips computed in {} μs", self.time_flipping);
+        #[cfg(feature = "logging")]
+        {
+            log::debug!("-------------------------------------------");
+            log::debug!("Time elapsed:");
+            log::debug!("Inserts computed in {} μs", self.time_inserting);
+            log::debug!("Walks computed in {} μs", self.time_walking);
+            log::debug!("Flips computed in {} μs", self.time_flipping);
+        }
     }
 
     fn is_flippable(
@@ -1187,6 +1216,15 @@ impl PartialEq for Triangulation {
 impl Eq for Triangulation {}
 
 #[cfg(test)]
+mod pre_test {
+    #[cfg(not(feature = "logging"))]
+    #[test]
+    fn logging_enabled() {
+        panic!("\x1b[1;31;7m tests must be run with logging enabled, try `--features logging` \x1b[0m")
+    }
+}
+
+#[cfg(all(test, feature = "logging"))]
 mod tests {
     use super::*;
     use rita_test_utils::{sample_vertices_2d, sample_weights};
@@ -1342,6 +1380,7 @@ mod tests {
 
     #[test]
     #[ignore]
+    #[cfg(feature = "timing")]
     // only run this test isolated, as test concurenncy can mess up par_iter
     fn test_parallel_regularity_2d() {
         let n_vertices = 2000;

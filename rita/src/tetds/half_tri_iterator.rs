@@ -46,6 +46,7 @@ impl<'a> HalfTriIterator<'a> {
             || (n0 == n_opposite2 && n1 == n_opposite1 && n2 == n_opposite0)
             || (n0 == n_opposite1 && n1 == n_opposite0 && n2 == n_opposite2))
         {
+            #[cfg(feature = "logging")]
             log::error!("{}: Wrong opposite triangle: {}", self, self.opposite());
             return false;
         }
@@ -90,8 +91,8 @@ impl<'a> HalfTriIterator<'a> {
     }
 }
 
-impl std::fmt::Display for HalfTriIterator<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for HalfTriIterator<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         let [n0, n1, n2] = self.nodes();
         write!(
             f,

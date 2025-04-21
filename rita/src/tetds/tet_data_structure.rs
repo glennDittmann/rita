@@ -1,9 +1,10 @@
 use crate::VertexNode;
-use anyhow::{Ok as HowOk, Result as HowResult};
-
 use super::{
     half_tri_iterator::HalfTriIterator, hedge_iterator::HedgeIterator, tet_iterator::TetIterator,
 };
+
+use anyhow::{Ok as HowOk, Result as HowResult};
+use alloc::{vec, vec::Vec};
 
 // For each tri idx within a tet, associate list of vertex idx triples, i.e. the face indices
 /// For each triangle index within tetrahedron, associate list of vertices within tetrahedron
@@ -644,8 +645,8 @@ impl TetDataStructure {
     }
 }
 
-impl std::fmt::Display for TetDataStructure {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for TetDataStructure {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         for idx in 0..self.num_tets {
             write!(f, "Tet {}: {}", idx, self.tet(idx))?;
         }

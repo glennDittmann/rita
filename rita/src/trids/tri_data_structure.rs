@@ -1,8 +1,9 @@
 use crate::{utils::types::HedgeIteratorIdx, VertexNode};
-
 use super::{hedge_iterator::HedgeIterator, tri_iterator::TriIterator};
+
 use anyhow::{Ok as HowOk, Result as HowResult};
 use geogram_predicates as gp;
+use alloc::vec::Vec;
 
 const INACTIVE: usize = usize::MAX;
 
@@ -299,8 +300,8 @@ impl TriDataStructure {
 
         if orient == -1 {
             // swap second and third edge
-            std::mem::swap(&mut starting_node1, &mut starting_node2);
-            std::mem::swap(&mut twin_idx1, &mut twin_idx2);
+            core::mem::swap(&mut starting_node1, &mut starting_node2);
+            core::mem::swap(&mut twin_idx1, &mut twin_idx2);
         }
 
         // 2.2 First new edge
