@@ -55,12 +55,14 @@ pub struct Tetrahedralization {
     vertices: Vec<Vertex3>,
     /// The weights of the vertices, `Some` if the vertices are weighted
     weights: Option<Vec<f64>>,
+
     #[cfg(feature = "timing")]
     pub(crate) time_hilbert: u128,
     #[cfg(feature = "timing")]
     time_walking: u128,
     #[cfg(feature = "timing")]
     time_inserting: u128,
+
     /// Indices of vertices that are inserted, i.e. not skipped due to epsilon
     #[cfg_attr(feature = "arbitrary", arbitrary(default))]
     used_vertices: Vec<VertexIdx>,

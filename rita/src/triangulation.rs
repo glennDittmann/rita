@@ -66,18 +66,20 @@ pub(crate) enum Flip {
 #[derive(Debug)]
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct Triangulation {
+    epsilon: Option<f64>,
     pub tds: TriDataStructure,
     pub vertices: Vec<Vertex2>,
     /// The weights of the vertices, `Some` if the vertices are weighted
     pub weights: Option<Vec<f64>>,
+    last_inserted_triangle: Option<usize>,
+
     #[cfg(feature = "timing")]
     time_flipping: u128,
     #[cfg(feature = "timing")]
     time_inserting: u128,
     #[cfg(feature = "timing")]
     time_walking: u128,
-    last_inserted_triangle: Option<usize>,
-    epsilon: Option<f64>,
+
     /// Vertices that are part of the triangulation
     /// (i.e. the input point set without redundant and ignored vertices).
     #[cfg_attr(feature = "arbitrary", arbitrary(default))]

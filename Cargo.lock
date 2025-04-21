@@ -3064,21 +3064,6 @@ dependencies = [
 
 [[package]]
 name = "rita"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd362db48b12a61811c00584f1e757deb19ce4953c0931ae1edc393a77669a64"
-dependencies = [
- "anyhow",
- "geogram_predicates",
- "log",
- "nalgebra",
- "rand 0.9.1",
- "rand_distr",
- "rayon",
-]
-
-[[package]]
-name = "rita"
 version = "0.2.0"
 dependencies = [
  "anyhow",
@@ -3102,7 +3087,7 @@ dependencies = [
  "futures",
  "log",
  "rfd",
- "rita 0.1.7",
+ "rita",
  "rita_test_utils",
  "serde",
  "vertex_clustering",
@@ -3272,9 +3257,9 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
 name = "signal-hook-registry"
-version = "1.4.4"
+version = "1.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1ee1aca2bc74ef9589efa7ccaa0f3752751399940356209b3fd80c078149b5e"
+checksum = "9203b8055f63a2a00e2f593bb0510367fe707d7ff1e5c872de2f537b339e5410"
 dependencies = [
  "libc",
 ]

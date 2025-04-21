@@ -3,6 +3,7 @@ name = "rita_lab"
 version = "0.1.1"
 edition = "2024"
 rust-version = "1.85.0"
+publish = false
 
 description = "A tool for 2D triangulations and related algorithms."
 keywords = [
@@ -17,7 +18,7 @@ authors = ["Glenn Dittmann <glenn.dittmann@posteo.de>"]
 license = "MIT"
 
 [dependencies]
-rita = "0.1.7"
+rita = { version = "0.2", path = "../rita", features = ["timing"] }
 vertex_clustering = "0.1.1"
 csv = "1.2.2"
 rfd = "0.15.3"
