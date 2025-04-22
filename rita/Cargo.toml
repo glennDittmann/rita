@@ -24,9 +24,9 @@ license = "MIT"
 anyhow = { version = "1.0", default-features = false }
 geogram_predicates = "0.2.1"
 log = { version = "0.4", optional = true }
-nalgebra = { version = "0.33", features = ["macros", "matrixmultiply"], default-features = false }
+nalgebra = { version = "0.33", features = ["libm", "macros", "matrixmultiply"], default-features = false }
 rayon = "1.10"
-arbitrary = { version = "1.4", optional = true , features = ["derive"] }
+arbitrary = { version = "1.4", optional = true, features = ["derive"] }
 
 [dev-dependencies]
 rita_test_utils = { version = "0.1", path = "../rita_test_utils" }

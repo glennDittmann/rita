@@ -435,6 +435,7 @@ impl Triangulation {
 
         #[cfg(feature = "timing")]
         let now = std::time::Instant::now();
+
         let mut hedges_to_verify = Vec::new();
         let [hedge0, hedge1, hedge2] = self.tds().get_tri(containing_tri_idx)?.hedges();
         hedges_to_verify.push(hedge0.twin().idx);
@@ -443,6 +444,7 @@ impl Triangulation {
 
         let [t0, _, _] = self.tds.flip_1_to_3(containing_tri_idx, v_idx)?;
         self.last_inserted_triangle = Some(t0.idx);
+
         #[cfg(feature = "timing")]
         { self.time_inserting += now.elapsed().as_micros() };
 
