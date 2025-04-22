@@ -33,6 +33,7 @@ rita_test_utils = { version = "0.1", path = "../rita_test_utils" }
 
 [features]
 default = ["std"]
-timing = ["std"]
 std = ["anyhow/std", "nalgebra/std"]
-logging = ["dep:log", "timing"]
+timing = ["std"]
+logging = ["dep:log"]
+log_timing = ["logging", "timing"]

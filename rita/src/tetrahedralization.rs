@@ -529,7 +529,7 @@ impl Tetrahedralization {
         idxs_to_insert: &mut Vec<usize>,
         spatial_sorting: bool,
     ) -> HowResult<()> {
-        #[cfg(feature = "logging")]
+        #[cfg(feature = "log_timing")]
         let now = std::time::Instant::now();
 
         // first tetrahedron insertion
@@ -592,7 +592,7 @@ impl Tetrahedralization {
             idxs_to_insert.append(&mut aligned);
         }
 
-        #[cfg(feature = "logging")]
+        #[cfg(feature = "log_timing")]
         log::trace!(
             "First tetrahedron computed in {}μs",
             now.elapsed().as_micros()
@@ -622,7 +622,7 @@ impl Tetrahedralization {
 
         self.tds.clean_to_del()?;
 
-        #[cfg(feature = "logging")]
+        #[cfg(feature = "log_timing")]
         {
             log::trace!("Walks computed in {} μs", self.time_walking);
             log::trace!("Insertions computed in {} μs", self.time_inserting);
@@ -661,7 +661,7 @@ impl Tetrahedralization {
 
             #[cfg(feature = "timing")]
             { self.time_hilbert = now.elapsed().as_micros(); }
-            #[cfg(feature = "logging")]
+            #[cfg(feature = "log_timing")]
             log::trace!("Hilbert curve computed in {} μs", now.elapsed().as_micros());
         }
 
@@ -675,7 +675,7 @@ impl Tetrahedralization {
         }
 
         self.tds.clean_to_del()?;
-        #[cfg(feature = "logging")]
+        #[cfg(feature = "log_timing")]
         {
             log::trace!("Walks computed in {} μs", self.time_walking);
             log::trace!("Insertions computed in {} μs", self.time_inserting);

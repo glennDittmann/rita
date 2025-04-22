@@ -256,7 +256,7 @@ impl Triangulation {
     }
 
     pub fn insert_init_tri(&mut self, v_idxs: &mut Vec<VertexIdx>) -> HowResult<()> {
-        #[cfg(feature = "logging")]
+        #[cfg(feature = "log_timing")]
         let now = std::time::Instant::now();
 
         if self.vertices().len() == v_idxs.len() {
@@ -301,7 +301,7 @@ impl Triangulation {
 
         self.last_inserted_triangle = Some(0); // here the first triangle is the last inserted, as it is the initial casual triangle
 
-        #[cfg(feature = "logging")]
+        #[cfg(feature = "log_timing")]
         log::trace!(
             "Initial triangle inserted in {:.4} µs",
             now.elapsed().as_micros()
@@ -373,12 +373,12 @@ impl Triangulation {
         }
 
         if spatial_sorting {
-            #[cfg(feature = "logging")]
+            #[cfg(feature = "log_timing")]
             let now = std::time::Instant::now();
 
             idxs_to_insert = sort_along_hilbert_curve_2d(&self.vertices, &idxs_to_insert);
 
-            #[cfg(feature = "logging")]
+            #[cfg(feature = "log_timing")]
             log::trace!(
                 "Spatial sorting (hilbert curve) computed in {:.4} µs",
                 now.elapsed().as_micros()
@@ -611,6 +611,7 @@ impl Triangulation {
                 }
 
                 if self.is_v_in_powercircle(v_idx, tri_idx)? {
+                    // #[cfg(feature = "logging")]
                     // log::error!("Vertex in power circle: {}", self.tds().get_tri(tri_idx)?);
                     regular = false;
                     num_violated_triangles += 1; // s. the break below
@@ -631,6 +632,7 @@ impl Triangulation {
                 }
 
                 if self.is_v_in_powercircle(v_idx, tri_idx)? {
+                    // #[cfg(feature = "logging")]
                     // log::error!("Vertex in power circle: {}", self.tds().get_tri(tri_idx)?);
                     regular = false;
                     num_violated_triangles += 1; // s. the break below
@@ -1095,7 +1097,7 @@ impl Triangulation {
     }
 
     fn log_time(&self) {
-        #[cfg(feature = "logging")]
+        #[cfg(feature = "log_timing")]
         {
             log::debug!("-------------------------------------------");
             log::debug!("Time elapsed:");
