@@ -50,7 +50,7 @@ pub enum ExtendedTetrahedron {
 #[derive(Debug)]
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct Tetrahedralization {
-    /// An artificial inverse weight to make points be considered as regular (ie. not lying in a tetrahedron circumcircle).
+    /// A circumsphere to make points be considered as regular (ie. not lying in a tetrahedron circumsphere).
     ///
     /// Even a small epsilon can make the tetrahedralization faster.
     epsilon: Option<f64>,
