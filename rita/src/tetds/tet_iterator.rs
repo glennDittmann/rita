@@ -1,5 +1,4 @@
 use crate::{utils::types::TetIteratorIdx, VertexNode};
-
 use super::{half_tri_iterator::HalfTriIterator, tet_data_structure::TetDataStructure};
 
 pub struct TetIterator<'a> {
@@ -47,6 +46,7 @@ impl<'a> TetIterator<'a> {
 
     pub fn is_sound(&self) -> bool {
         if self.should_del() || self.should_keep() {
+            #[cfg(feature = "logging")]
             log::error!("{self}: tetrahedron remaining after triangulation.");
             return false;
         }
@@ -56,6 +56,7 @@ impl<'a> TetIterator<'a> {
         let mut sound = true;
 
         if n0 == n1 || n0 == n2 || n0 == n3 || n1 == n2 || n1 == n3 || n2 == n3 {
+            #[cfg(feature = "logging")]
             log::error!("{self}: tetrahedron with duplicate nodes.");
             sound = false;
         }
@@ -82,8 +83,8 @@ impl<'a> TetIterator<'a> {
     }
 }
 
-impl std::fmt::Display for TetIterator<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for TetIterator<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         let [n0, n1, n2, n3] = self.nodes();
         write!(
             f,

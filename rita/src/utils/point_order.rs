@@ -1,4 +1,5 @@
 use super::types::{Vertex2, Vertex3};
+use alloc::vec::Vec;
 
 /// Sorts vertices along 2D Hilbert curve
 pub fn sort_along_hilbert_curve_2d(vertices: &[Vertex2], indices_to_add: &[usize]) -> Vec<usize> {
@@ -12,7 +13,7 @@ pub fn sort_along_hilbert_curve_2d(vertices: &[Vertex2], indices_to_add: &[usize
 
     while let Some((rot, pt_min, pt_max, indices_to_add)) = to_subdiv.pop() {
         match indices_to_add.len().cmp(&1) {
-            std::cmp::Ordering::Greater => {
+            core::cmp::Ordering::Greater => {
                 let sep_x = (pt_min[0] + pt_max[0]) / 2.0;
                 let sep_y = (pt_min[1] + pt_max[1]) / 2.0;
 
@@ -90,7 +91,7 @@ pub fn sort_along_hilbert_curve_2d(vertices: &[Vertex2], indices_to_add: &[usize
                     to_subdiv.push((0, pt_d_min, pt_d_max, ind_d));
                 }
             }
-            std::cmp::Ordering::Equal => curve_order.push(indices_to_add[0]),
+            core::cmp::Ordering::Equal => curve_order.push(indices_to_add[0]),
             _ => (),
         }
     }
@@ -154,7 +155,7 @@ pub fn sort_along_hilbert_curve_3d(vertices: &[Vertex3], indices_to_add: Vec<usi
 
     while let Some((start, dir, pt_min, pt_max, indices_to_add)) = to_subdiv.pop() {
         match indices_to_add.len().cmp(&1) {
-            std::cmp::Ordering::Greater => {
+            core::cmp::Ordering::Greater => {
                 let sep_x = (pt_min[0] + pt_max[0]) / 2.0;
                 let sep_y = (pt_min[1] + pt_max[1]) / 2.0;
                 let sep_z = (pt_min[2] + pt_max[2]) / 2.0;
@@ -214,7 +215,7 @@ pub fn sort_along_hilbert_curve_3d(vertices: &[Vertex3], indices_to_add: Vec<usi
                     start_ind[dir[i]] = 1 - start_ind[dir[i]];
                 }
             }
-            std::cmp::Ordering::Equal => curve_order.push(indices_to_add[0]),
+            core::cmp::Ordering::Equal => curve_order.push(indices_to_add[0]),
             _ => (),
         }
     }

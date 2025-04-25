@@ -1,9 +1,9 @@
 use core::fmt;
+#[cfg(feature = "logging")]
 use log::error;
-use std::cmp::Ordering;
+use core::cmp::Ordering;
 
 use crate::{utils::types::HedgeIteratorIdx, VertexNode};
-
 use super::{tri_data_structure::TriDataStructure, tri_iterator::TriIterator};
 
 /// An iterator over the half-edges of a triangulation data structure.
@@ -36,8 +36,10 @@ impl<'a> HedgeIterator<'a> {
         let starting_node = self.starting_node();
         let end_node = self.end_node();
 
+        #[allow(unused)]
         let mut check = |condition: bool, error_msg: &str| {
             if !condition {
+                #[cfg(feature = "logging")]
                 error!("{self}: {error_msg}");
                 sound = false;
             }

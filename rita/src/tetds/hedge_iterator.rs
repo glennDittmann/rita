@@ -36,22 +36,26 @@ impl<'a> HedgeIterator<'a> {
         let mut valid = true;
 
         if !(hedge_next.first_node() == last_node) {
+            #[cfg(feature = "logging")]
             log::error!("{self}: Wrong next hedge");
             valid = false;
         }
         if !(hedge_prev.last_node() == first_node) {
+            #[cfg(feature = "logging")]
             log::error!("{self}: Wrong prev hedge");
             valid = false;
         }
         if !(hedge_opposite.first_node() == last_node)
             || !(hedge_opposite.last_node() == first_node)
         {
+            #[cfg(feature = "logging")]
             log::error!("{self}: Wrong opposite hedge");
             valid = false;
         }
         if !(hedge_neighbor.first_node() == last_node)
             || !(hedge_neighbor.last_node() == first_node)
         {
+            #[cfg(feature = "logging")]
             log::error!("{self}: Wrong neighboring hedge");
             valid = false;
         }
@@ -118,8 +122,8 @@ impl<'a> HedgeIterator<'a> {
     }
 }
 
-impl std::fmt::Display for HedgeIterator<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for HedgeIterator<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "Edge: {} -> {}", self.first_node(), self.last_node())
     }
 }

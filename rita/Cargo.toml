@@ -1,8 +1,8 @@
 [package]
 name = "rita"
-version = "0.1.7"
-edition = "2021"
-rust-version = "1.75.0"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.85.0"
 
 description = "2D and 3D Randomized Incremental Triangulation Algorithms"
 keywords = [
@@ -21,12 +21,19 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
+anyhow = { version = "1.0", default-features = false }
 geogram_predicates = "0.2.1"
-log = "0.4"
-nalgebra = "0.33"
+log = { version = "0.4", optional = true }
+nalgebra = { version = "0.33", features = ["libm", "macros", "matrixmultiply"], default-features = false }
 rayon = "1.10"
-arbitrary = { version = "1.4", optional = true , features = ["derive"] }
+arbitrary = { version = "1.4", optional = true, features = ["derive"] }
 
 [dev-dependencies]
 rita_test_utils = { version = "0.1", path = "../rita_test_utils" }
+
+[features]
+default = ["std"]
+std = ["anyhow/std", "nalgebra/std"]
+timing = ["std"]
+logging = ["dep:log"]
+log_timing = ["logging", "timing"]

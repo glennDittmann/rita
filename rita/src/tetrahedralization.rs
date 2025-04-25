@@ -1,4 +1,5 @@
-use std::cmp;
+use core::cmp;
+use alloc::{vec::Vec, vec};
 
 use crate::{
     tetds::{half_tri_iterator::HalfTriIterator, tet_data_structure::TetDataStructure},
@@ -10,6 +11,7 @@ use crate::{
 };
 use anyhow::Result as HowResult;
 use geogram_predicates as gp;
+#[cfg(feature = "logging")]
 use log::error;
 use rayon::prelude::*;
 
@@ -48,14 +50,22 @@ pub enum ExtendedTetrahedron {
 #[derive(Debug)]
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct Tetrahedralization {
+    /// An artificial weight to make points be considered as regular (ie. not lying in a tetrahedrons circumsphere).
+    ///
+    /// Even a small epsilon can make the tetrahedralization faster.
     epsilon: Option<f64>,
     tds: TetDataStructure,
     vertices: Vec<Vertex3>,
     /// The weights of the vertices, `Some` if the vertices are weighted
     weights: Option<Vec<f64>>,
-    pub time_hilbert: u128,
+
+    #[cfg(feature = "timing")]
+    pub(crate) time_hilbert: u128,
+    #[cfg(feature = "timing")]
     time_walking: u128,
+    #[cfg(feature = "timing")]
     time_inserting: u128,
+
     /// Indices of vertices that are inserted, i.e. not skipped due to epsilon
     #[cfg_attr(feature = "arbitrary", arbitrary(default))]
     used_vertices: Vec<VertexIdx>,
@@ -116,8 +126,11 @@ impl Tetrahedralization {
             tds: TetDataStructure::new(),
             vertices: Vec::new(),
             weights: None,
+            #[cfg(feature = "timing")]
             time_hilbert: 0,
+            #[cfg(feature = "timing")]
             time_walking: 0,
+            #[cfg(feature = "timing")]
             time_inserting: 0,
             used_vertices: Vec::new(),
             ignored_vertices: Vec::new(),
@@ -131,8 +144,11 @@ impl Tetrahedralization {
             tds: TetDataStructure::new(),
             vertices: Vec::with_capacity(capacity),
             weights: None,
+            #[cfg(feature = "timing")]
             time_hilbert: 0,
+            #[cfg(feature = "timing")]
             time_walking: 0,
+            #[cfg(feature = "timing")]
             time_inserting: 0,
             used_vertices: Vec::new(),
             ignored_vertices: Vec::new(),
@@ -464,6 +480,7 @@ impl Tetrahedralization {
 
     fn insert_vertex_helper(&mut self, v_idx: usize, near_to_idx: usize) -> HowResult<usize> {
         // Locating vertex via vis walk
+        #[cfg(feature = "timing")]
         let now = std::time::Instant::now();
 
         let containing_tet_idx = if let Ok(idx) = self.locate_vis_walk(v_idx, near_to_idx) {
@@ -473,7 +490,8 @@ impl Tetrahedralization {
             self.walk_check_all(v_idx)?
         };
 
-        self.time_walking += now.elapsed().as_micros();
+        #[cfg(feature = "timing")]
+        { self.time_walking += now.elapsed().as_micros(); }
 
         if self.epsilon.is_some()
             && self.tds().get_tet(containing_tet_idx)?.is_casual()
@@ -495,11 +513,13 @@ impl Tetrahedralization {
         // Inserting vertex
         self.used_vertices.push(v_idx);
 
+        #[cfg(feature = "timing")]
         let now = std::time::Instant::now();
 
         let new_tets = self.insert_bw(v_idx, containing_tet_idx)?;
 
-        self.time_inserting += now.elapsed().as_micros();
+        #[cfg(feature = "timing")]
+        { self.time_inserting += now.elapsed().as_micros(); }
 
         Ok(new_tets[0])
     }
@@ -509,6 +529,7 @@ impl Tetrahedralization {
         idxs_to_insert: &mut Vec<usize>,
         spatial_sorting: bool,
     ) -> HowResult<()> {
+        #[cfg(feature = "log_timing")]
         let now = std::time::Instant::now();
 
         // first tetrahedron insertion
@@ -571,6 +592,7 @@ impl Tetrahedralization {
             idxs_to_insert.append(&mut aligned);
         }
 
+        #[cfg(feature = "log_timing")]
         log::trace!(
             "First tetrahedron computed in {}μs",
             now.elapsed().as_micros()
@@ -600,8 +622,11 @@ impl Tetrahedralization {
 
         self.tds.clean_to_del()?;
 
-        log::trace!("Walks computed in {} μs", self.time_walking);
-        log::trace!("Insertions computed in {} μs", self.time_inserting);
+        #[cfg(feature = "log_timing")]
+        {
+            log::trace!("Walks computed in {} μs", self.time_walking);
+            log::trace!("Insertions computed in {} μs", self.time_inserting);
+        }
 
         Ok(())
     }
@@ -629,9 +654,14 @@ impl Tetrahedralization {
         }
 
         if spatial_sorting {
+            #[cfg(feature = "timing")]
             let now = std::time::Instant::now();
+
             idxs_to_insert = sort_along_hilbert_curve_3d(&self.vertices, idxs_to_insert);
-            self.time_hilbert = now.elapsed().as_micros();
+
+            #[cfg(feature = "timing")]
+            { self.time_hilbert = now.elapsed().as_micros(); }
+            #[cfg(feature = "log_timing")]
             log::trace!("Hilbert curve computed in {} μs", now.elapsed().as_micros());
         }
 
@@ -645,9 +675,11 @@ impl Tetrahedralization {
         }
 
         self.tds.clean_to_del()?;
-
-        log::trace!("Walks computed in {} μs", self.time_walking);
-        log::trace!("Insertions computed in {} μs", self.time_inserting);
+        #[cfg(feature = "log_timing")]
+        {
+            log::trace!("Walks computed in {} μs", self.time_walking);
+            log::trace!("Insertions computed in {} μs", self.time_inserting);
+        }
 
         Ok(())
     }
@@ -659,6 +691,7 @@ impl Tetrahedralization {
 
         for tet_idx in 0..self.tds().num_tets() {
             if self.is_tet_flat(tet_idx)? {
+                #[cfg(feature = "logging")]
                 error!("Flat tetrahedron: {}", self.tds().get_tet(tet_idx)?);
                 regular = false;
                 num_violated_tets += 1;
@@ -678,6 +711,8 @@ impl Tetrahedralization {
                 }
 
                 if self.is_v_in_powersphere(v_idx, tet_idx, false)? {
+                    #[cfg(feature = "logging")]
+                    // FIXME: should this not be an error?
                     log::error!("Non Delaunay tetrahedron: {}", self.tds().get_tet(tet_idx)?);
                     regular = false;
                     num_violated_tets += 1;
@@ -769,6 +804,7 @@ impl Tetrahedralization {
             }
 
             if self.is_tet_flat(tet_idx)? {
+                #[cfg(feature = "logging")]
                 error!("Flat tetrahedron: {}", self.tds().get_tet(tet_idx)?);
                 regular = false;
                 num_violated_tets += 1;
@@ -815,10 +851,13 @@ impl Tetrahedralization {
         match self.tds().is_sound() {
             Ok(true) => Ok(true),
             Ok(false) => {
+                #[cfg(feature = "logging")]
                 error!("Triangulation is not sound!");
                 Ok(false)
             }
+            #[allow(unused)]
             Err(e) => {
+                #[cfg(feature = "logging")]
                 error!("Triangulation is not sound: {e}");
                 Ok(false)
             }
@@ -830,8 +869,8 @@ impl Tetrahedralization {
     }
 }
 
-impl std::fmt::Display for Tetrahedralization {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl core::fmt::Display for Tetrahedralization {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(
             f,
             "Tetrahedralization with {} vertices and {} tets",
@@ -842,6 +881,15 @@ impl std::fmt::Display for Tetrahedralization {
 }
 
 #[cfg(test)]
+mod pre_test {
+    #[cfg(not(feature = "logging"))]
+    #[test]
+    fn logging_enabled() {
+        panic!("\x1b[1;31;7m tests must be run with logging enabled, try `--features logging` \x1b[0m")
+    }
+}
+
+#[cfg(all(test, feature = "logging"))]
 mod tests {
     use super::*;
     use rita_test_utils::{sample_vertices_3d, sample_weights};
