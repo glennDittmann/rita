@@ -1,9 +1,9 @@
-use crate::{utils::types::HedgeIteratorIdx, VertexNode};
 use super::{hedge_iterator::HedgeIterator, tri_iterator::TriIterator};
+use crate::{VertexNode, utils::types::HedgeIteratorIdx};
 
+use alloc::vec::Vec;
 use anyhow::{Ok as HowOk, Result as HowResult};
 use geogram_predicates as gp;
-use alloc::vec::Vec;
 
 const INACTIVE: usize = usize::MAX;
 
@@ -114,7 +114,11 @@ impl TriDataStructure {
     }
 
     /// Insert a vertex `d` into an existing triangle `abc`; called the `1 -> 3 flip`, as it deletes the triangle and creates three new ones.
-    pub fn flip_1_to_3(&mut self, idx_to_remove: usize, v_idx: usize) -> HowResult<[TriIterator; 3]> {
+    pub fn flip_1_to_3(
+        &mut self,
+        idx_to_remove: usize,
+        v_idx: usize,
+    ) -> HowResult<[TriIterator; 3]> {
         if idx_to_remove > self.num_tris() + self.num_deleted_tris {
             return Err(anyhow::Error::msg("Triangle index out of bounds!"));
         }

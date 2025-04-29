@@ -1,6 +1,6 @@
 use super::{
     half_tri_iterator::HalfTriIterator,
-    tet_data_structure::{TetDataStructure, NEIGHBOR_HALFEDGE, TRIANGLE_SUBINDICES},
+    tet_data_structure::{NEIGHBOR_HALFEDGE, TRIANGLE_SUBINDICES, TetDataStructure},
 };
 use crate::VertexNode;
 

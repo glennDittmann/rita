@@ -1,6 +1,6 @@
 use super::types::Vertex2;
-use geogram_predicates as gp;
 use core::cmp;
+use geogram_predicates as gp;
 
 /// Checks if ang(v1--v0, v1--v2) is convex, flat, or concave
 pub(crate) fn is_convex(v0: Vertex2, v1: Vertex2, v2: Vertex2) -> bool {

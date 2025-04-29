@@ -2,7 +2,7 @@ use egui::{Color32, Context, Stroke};
 use egui_plot::{Legend, Plot, PlotResponse, PlotUi, Points, Polygon};
 use vertex_clustering::VertexClusterer2;
 
-use crate::types::{PlotSettings, TriangulationData, Vertex2, ORANGE, TRI_GREEN};
+use crate::types::{ORANGE, PlotSettings, TRI_GREEN, TriangulationData, Vertex2};
 
 pub fn show(
     ctx: &Context,
@@ -89,7 +89,10 @@ fn vertex_markers<'p>(plot_settings: &mut PlotSettings, vertices: &'p [Vertex2])
 }
 
 /// Create the plot markers for the input vertices of the triangulation
-fn scaled_vertex_markers<'p>(plot_settings: &mut PlotSettings, vertices: &'p [Vertex2]) -> Points<'p> {
+fn scaled_vertex_markers<'p>(
+    plot_settings: &mut PlotSettings,
+    vertices: &'p [Vertex2],
+) -> Points<'p> {
     let plot_points: Vec<[f64; 2]> = vertices.iter().map(|&v| [v[0], v[1]]).collect();
 
     Points::new("Scaled Vertices", plot_points)

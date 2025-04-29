@@ -1,10 +1,10 @@
+use core::cmp::Ordering;
 use core::fmt;
 #[cfg(feature = "logging")]
 use log::error;
-use core::cmp::Ordering;
 
-use crate::{utils::types::HedgeIteratorIdx, VertexNode};
 use super::{tri_data_structure::TriDataStructure, tri_iterator::TriIterator};
+use crate::{VertexNode, utils::types::HedgeIteratorIdx};
 
 /// An iterator over the half-edges of a triangulation data structure.
 #[derive(Clone)]

@@ -29,7 +29,12 @@ pub fn show(
 }
 
 fn draw_triangles(plot_ui: &mut PlotUi, triangulation_data: &mut TriangulationData) {
-    for (i, [a, b, c]) in triangulation_data.triangulation.tris().into_iter().enumerate() {
+    for (i, [a, b, c]) in triangulation_data
+        .triangulation
+        .tris()
+        .into_iter()
+        .enumerate()
+    {
         plot_ui.polygon(
             // todo use borrowed series
             Polygon::new(format!("Triangle {i}"), vec![a, b, c])
