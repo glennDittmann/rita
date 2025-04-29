@@ -1108,7 +1108,7 @@ impl Triangulation {
         }
     }
 
-    const fn log_time(&self) {
+    fn log_time(&self) {
         #[cfg(feature = "log_timing")]
         {
             log::debug!("-------------------------------------------");
