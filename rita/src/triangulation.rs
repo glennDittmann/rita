@@ -1,11 +1,12 @@
-use core::panic;
+use alloc::{vec, vec::Vec};
 use core::cmp;
-use alloc::{vec::Vec, vec};
+use core::panic;
 
 // TODO: we could allow the epsilon filter on insertion also allow to happen, when the inserted vertex is in a casual triangle, i.e. outside the c-hull
 // TODO: we could also incorporate that in the 3->1 flip, as to remove points in a later stage of the algo (not just at insertion)
 
 use crate::{
+    VertexNode,
     trids::{
         hedge_iterator::HedgeIterator, tri_data_structure::TriDataStructure,
         tri_iterator::TriIterator,
@@ -15,7 +16,6 @@ use crate::{
         point_order::sort_along_hilbert_curve_2d,
         types::{Edge2, Triangle2, Vertex2, VertexIdx},
     },
-    VertexNode,
 };
 use anyhow::{Ok as HowOk, Result as HowResult};
 use geogram_predicates as gp;
@@ -117,23 +117,27 @@ impl Default for Triangulation {
 #[macro_export]
 macro_rules! triangulation {
     ($vertices:expr) => {{
-        let mut triangulation = $crate::Triangulation::new_with_vert_capacity(None, $vertices.len());
+        let mut triangulation =
+            $crate::Triangulation::new_with_vert_capacity(None, $vertices.len());
         let _ = triangulation.insert_vertices($vertices, None, true);
         triangulation
     }};
     ($vertices:expr, epsilon = $epsilon:expr) => {{
-        let mut triangulation = $crate::Triangulation::new_with_vert_capacity(Some($epsilon), $vertices.len());
+        let mut triangulation =
+            $crate::Triangulation::new_with_vert_capacity(Some($epsilon), $vertices.len());
         let _ = triangulation.insert_vertices($vertices, None, true);
         triangulation
     }};
     // with weights
     ($vertices:expr, $weights:expr) => {{
-        let mut triangulation = $crate::Triangulation::new_with_vert_capacity(None, $vertices.len());
+        let mut triangulation =
+            $crate::Triangulation::new_with_vert_capacity(None, $vertices.len());
         let _ = triangulation.insert_vertices($vertices, Some($weights), true);
         triangulation
     }};
     ($vertices:expr, $weights:expr, epsilon = $epsilon:expr) => {{
-        let mut triangulation = $crate::Triangulation::new_with_vert_capacity(Some($epsilon), $vertices.len());
+        let mut triangulation =
+            $crate::Triangulation::new_with_vert_capacity(Some($epsilon), $vertices.len());
         let _ = triangulation.insert_vertices($vertices, Some($weights), true);
         triangulation
     }};
@@ -412,7 +416,9 @@ impl Triangulation {
         let containing_tri_idx = self.locate_vis_walk(v_idx, near_to)?; // the possibly invalid triangle
 
         #[cfg(feature = "timing")]
-        { self.time_walking += now.elapsed().as_micros(); }
+        {
+            self.time_walking += now.elapsed().as_micros();
+        }
 
         // Skip vertices that are not in power circle by epsilon (i.e. above the hyperplane)
         // but only if the containing triangle is casual (for now), i.e. the vertex is inside the current convex hull
@@ -446,7 +452,9 @@ impl Triangulation {
         self.last_inserted_triangle = Some(t0.idx);
 
         #[cfg(feature = "timing")]
-        { self.time_inserting += now.elapsed().as_micros() };
+        {
+            self.time_inserting += now.elapsed().as_micros();
+        };
 
         // Perform flips and measure time
         #[cfg(feature = "timing")]
@@ -500,7 +508,9 @@ impl Triangulation {
             }
         }
         #[cfg(feature = "timing")]
-        { self.time_flipping += now.elapsed().as_micros(); }
+        {
+            self.time_flipping += now.elapsed().as_micros();
+        }
         HowOk(())
     }
 
@@ -1229,7 +1239,9 @@ mod pre_test {
     #[cfg(not(feature = "logging"))]
     #[test]
     fn logging_enabled() {
-        panic!("\x1b[1;31;7m tests must be run with logging enabled, try `--features logging` \x1b[0m")
+        panic!(
+            "\x1b[1;31;7m tests must be run with logging enabled, try `--features logging` \x1b[0m"
+        )
     }
 }
 
@@ -1460,16 +1472,56 @@ mod tests {
         assert_eq!(
             triangulation!(vertices).tris(),
             vec![
-                [[-0.4931480236200205, -0.16592024114317144], [-0.3855198542371303, -0.44705493099901394], [0.3504827256051506, -0.19027659995331642]],
-                [[-0.37122939978339264, 0.3190369464265699], [-0.4931480236200205, -0.16592024114317144], [0.24723377358550735, 0.2100464123915723]],
-                [[-0.28683831662024745, 0.4111240123491553], [0.24723377358550735, 0.2100464123915723], [0.37042241707160173, 0.18423333136526698]],
-                [[0.24723377358550735, 0.2100464123915723], [-0.28683831662024745, 0.4111240123491553], [-0.37122939978339264, 0.3190369464265699]],
-                [[0.3504827256051506, -0.19027659995331642], [0.24723377358550735, 0.2100464123915723], [-0.4931480236200205, -0.16592024114317144]],
-                [[0.24723377358550735, 0.2100464123915723], [0.36490258549176935, 0.1365021615193457], [0.37042241707160173, 0.18423333136526698]],
-                [[0.37042241707160173, 0.18423333136526698], [0.36490258549176935, 0.1365021615193457], [0.44217013845102393, -0.055915696282054284]],
-                [[0.36490258549176935, 0.1365021615193457], [0.24723377358550735, 0.2100464123915723], [0.3504827256051506, -0.19027659995331642]],
-                [[0.44217013845102393, -0.055915696282054284], [0.36490258549176935, 0.1365021615193457], [0.3504827256051506, -0.19027659995331642]],
-                [[0.3504827256051506, -0.19027659995331642], [0.4250889854947786, -0.11789966697253218], [0.44217013845102393, -0.055915696282054284]],
+                [
+                    [-0.4931480236200205, -0.16592024114317144],
+                    [-0.3855198542371303, -0.44705493099901394],
+                    [0.3504827256051506, -0.19027659995331642]
+                ],
+                [
+                    [-0.37122939978339264, 0.3190369464265699],
+                    [-0.4931480236200205, -0.16592024114317144],
+                    [0.24723377358550735, 0.2100464123915723]
+                ],
+                [
+                    [-0.28683831662024745, 0.4111240123491553],
+                    [0.24723377358550735, 0.2100464123915723],
+                    [0.37042241707160173, 0.18423333136526698]
+                ],
+                [
+                    [0.24723377358550735, 0.2100464123915723],
+                    [-0.28683831662024745, 0.4111240123491553],
+                    [-0.37122939978339264, 0.3190369464265699]
+                ],
+                [
+                    [0.3504827256051506, -0.19027659995331642],
+                    [0.24723377358550735, 0.2100464123915723],
+                    [-0.4931480236200205, -0.16592024114317144]
+                ],
+                [
+                    [0.24723377358550735, 0.2100464123915723],
+                    [0.36490258549176935, 0.1365021615193457],
+                    [0.37042241707160173, 0.18423333136526698]
+                ],
+                [
+                    [0.37042241707160173, 0.18423333136526698],
+                    [0.36490258549176935, 0.1365021615193457],
+                    [0.44217013845102393, -0.055915696282054284]
+                ],
+                [
+                    [0.36490258549176935, 0.1365021615193457],
+                    [0.24723377358550735, 0.2100464123915723],
+                    [0.3504827256051506, -0.19027659995331642]
+                ],
+                [
+                    [0.44217013845102393, -0.055915696282054284],
+                    [0.36490258549176935, 0.1365021615193457],
+                    [0.3504827256051506, -0.19027659995331642]
+                ],
+                [
+                    [0.3504827256051506, -0.19027659995331642],
+                    [0.4250889854947786, -0.11789966697253218],
+                    [0.44217013845102393, -0.055915696282054284]
+                ],
             ]
         );
     }

@@ -2,7 +2,7 @@ use crate::VertexNode;
 
 use super::{
     hedge_iterator::HedgeIterator,
-    tet_data_structure::{TetDataStructure, TRIANGLE_SUBINDICES},
+    tet_data_structure::{TRIANGLE_SUBINDICES, TetDataStructure},
     tet_iterator::TetIterator,
 };
 

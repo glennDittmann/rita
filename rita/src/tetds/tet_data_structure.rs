@@ -1,10 +1,10 @@
-use crate::VertexNode;
 use super::{
     half_tri_iterator::HalfTriIterator, hedge_iterator::HedgeIterator, tet_iterator::TetIterator,
 };
+use crate::VertexNode;
 
-use anyhow::{Ok as HowOk, Result as HowResult};
 use alloc::{vec, vec::Vec};
+use anyhow::{Ok as HowOk, Result as HowResult};
 
 // For each tri idx within a tet, associate list of vertex idx triples, i.e. the face indices
 /// For each triangle index within tetrahedron, associate list of vertices within tetrahedron
@@ -363,7 +363,8 @@ impl TetDataStructure {
                         if !he_cur.tri().tet().should_del() {
                             let ind_tri2 = he_cur.tri().idx();
                             let j2 = he_cur.idx();
-                            let ind_cur2 = if let Some((i2, _)) = vec_tri.iter()
+                            let ind_cur2 = if let Some((i2, _)) = vec_tri
+                                .iter()
                                 .enumerate()
                                 .find(|&(_, &ind)| ind == ind_tri2)
                             {

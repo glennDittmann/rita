@@ -1,4 +1,4 @@
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, channel};
 
 /// Contains the text of the file and a channel to communicate with the file panel.
 pub struct FileHandler {
