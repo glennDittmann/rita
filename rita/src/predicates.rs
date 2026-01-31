@@ -133,12 +133,12 @@ mod imp {
     use robust::{Coord, Coord3D, incircle, insphere, orient2d, orient3d};
 
     #[inline]
-    fn coord2(p: &Vertex2) -> Coord<f64> {
+    const fn coord2(p: &Vertex2) -> Coord<f64> {
         Coord { x: p[0], y: p[1] }
     }
 
     #[inline]
-    fn coord3(p: &Vertex3) -> Coord3D<f64> {
+    const fn coord3(p: &Vertex3) -> Coord3D<f64> {
         Coord3D {
             x: p[0],
             y: p[1],
@@ -159,6 +159,7 @@ mod imp {
     /// Unweighted incircle (power circle with all heights zero). Used when `wasm` feature is on;
     /// weights are not allowed, so this is equivalent to orient_2dlifted_SOS with all h = 0.
     #[inline]
+    #[allow(clippy::too_many_arguments)]
     pub fn orient_2dlifted_SOS(
         a: &Vertex2,
         b: &Vertex2,
@@ -192,6 +193,7 @@ mod imp {
 
     /// Unweighted insphere (power sphere with all heights zero). Used when `wasm` feature is on.
     #[inline]
+    #[allow(clippy::too_many_arguments)]
     pub fn orient_3dlifted_SOS(
         a: &Vertex3,
         b: &Vertex3,

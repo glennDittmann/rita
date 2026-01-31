@@ -33,5 +33,5 @@ jobs:
         continue-on-error: true
       - name: clippy std
         run: cargo clippy -p rita
-      - name: clippy no-std
-        run: cargo clippy -p rita --no-default-features
+      - name: clippy wasm
+        run: cargo clippy -p rita --no-default-features --features "std,wasm"
