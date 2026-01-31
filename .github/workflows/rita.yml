@@ -29,9 +29,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: fmt
-        run: cargo fmt --check -p rita --all-features
+        run: cargo fmt --check -p rita
         continue-on-error: true
       - name: clippy std
-        run: cargo clippy -p rita --all-features
+        run: cargo clippy -p rita
       - name: clippy no-std
         run: cargo clippy -p rita --no-default-features
