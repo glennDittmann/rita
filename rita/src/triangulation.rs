@@ -333,10 +333,10 @@ impl Triangulation {
 
         let near_to_idx: usize;
 
-        if near_to.is_some() {
-            near_to_idx = near_to.unwrap();
-        } else if self.last_inserted_triangle.is_some() {
-            near_to_idx = self.last_inserted_triangle.unwrap();
+        if let Some(near_to) = near_to {
+            near_to_idx = near_to;
+        } else if let Some(last_inserted_triangle) = self.last_inserted_triangle {
+            near_to_idx = last_inserted_triangle;
         } else {
             near_to_idx = self.tds().num_tris() + self.tds().num_deleted_tris - 1;
         }
@@ -571,8 +571,8 @@ impl Triangulation {
         {
             let p = self.vertices()[v_idx];
 
-            let h_p = if self.epsilon.is_some() {
-                self.height(v_idx) + self.epsilon.unwrap()
+            let h_p = if let Some(epsilon) = self.epsilon {
+                self.height(v_idx) + epsilon
             } else {
                 panic!("Epsilon not set!");
             };
@@ -1123,7 +1123,7 @@ impl Triangulation {
         }
     }
 
-    fn log_time(&self) {
+    const fn log_time(&self) {
         #[cfg(feature = "log_timing")]
         {
             log::debug!("-------------------------------------------");
@@ -1231,8 +1231,8 @@ impl Triangulation {
 
             match idxs == tri_idxs {
                 // if the possible third tri is the tri abc it fills the reflex wedge and we can flip
-                true => return Some(Flip::ThreeToOne((possible_third_tri.idx, d))),
-                false => return None,
+                true => Some(Flip::ThreeToOne((possible_third_tri.idx, d))),
+                false => None,
             }
         } else {
             panic!("No reflex point found, but we should have found one!");

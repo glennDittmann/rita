@@ -81,6 +81,7 @@ mod imp {
     }
 
     #[inline]
+    #[allow(clippy::too_many_arguments)]
     pub fn orient_2dlifted_SOS(
         a: &Vertex2,
         b: &Vertex2,
@@ -102,6 +103,7 @@ mod imp {
     }
 
     #[inline]
+    #[allow(clippy::too_many_arguments)]
     pub fn orient_3dlifted_SOS(
         a: &Vertex3,
         b: &Vertex3,

@@ -347,8 +347,8 @@ impl Tetrahedralization {
         {
             let p = self.vertices[v_idx];
 
-            let h_p = if self.epsilon.is_some() {
-                self.height(v_idx) + self.epsilon.unwrap()
+            let h_p = if let Some(epsilon) = self.epsilon {
+                self.height(v_idx) + epsilon
             } else {
                 panic!("Epsilon not set!");
             };
