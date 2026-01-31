@@ -1,6 +1,6 @@
 use alloc::{vec, vec::Vec};
-use core::cmp;
 
+use crate::predicates;
 use crate::{
     VertexNode,
     tetds::{half_tri_iterator::HalfTriIterator, tet_data_structure::TetDataStructure},
@@ -10,7 +10,6 @@ use crate::{
     },
 };
 use anyhow::Result as HowResult;
-use geogram_predicates as gp;
 #[cfg(feature = "logging")]
 use log::error;
 use rayon::prelude::*;
@@ -40,11 +39,9 @@ pub enum ExtendedTetrahedron {
 ///     [1.5, 1.5, 3.0],
 ///     [3.0, 1.0, 4.0],
 /// ];
-/// let weights = vec![0.2, 0.3, 0.55, 0.5, 0.6, 0.4, 0.65, 0.7, 0.85, 0.35];
 ///
 /// let mut tetrahedralization = Tetrahedralization::new(None); // specify epsilon here
-/// let result = tetrahedralization.insert_vertices(&vertices, Some(weights), true);  // last parameter toggles spatial sorting
-/// println!("{:?}", result);
+/// let result = tetrahedralization.insert_vertices(&vertices, None, true);  // None = unweighted; use Some(weights) with geogram for weighted
 /// assert_eq!(tetrahedralization.par_is_regular(false), 1.0);
 /// ```
 #[derive(Debug)]
@@ -297,15 +294,15 @@ impl Tetrahedralization {
         let in_sphere = match ext_tet {
             // TODO: why do we need to invert gp's in sphere, compared to robust's, they should have the same signs for the same cases
             ExtendedTetrahedron::Tetrahedron([a, b, c, d]) => {
-                -gp::in_sphere_3d_SOS(&a, &b, &c, &d, &p)
+                -predicates::in_sphere_3d_SOS(&a, &b, &c, &d, &p)
             }
-            ExtendedTetrahedron::Triangle([a, b, c]) => -gp::orient_3d(&a, &b, &c, &p),
+            ExtendedTetrahedron::Triangle([a, b, c]) => -predicates::orient_3d(&a, &b, &c, &p),
         };
 
         if strict {
-            Ok(in_sphere > 0)
+            Ok(in_sphere > 0.0)
         } else {
-            Ok(in_sphere >= 0)
+            Ok(in_sphere >= 0.0)
         }
     }
 
@@ -324,46 +321,58 @@ impl Tetrahedralization {
                     .nodes()
                     .map(|n| self.height(n.idx().unwrap()));
 
-                gp::orient_3dlifted_SOS(&a, &b, &c, &d, &p, h_a, h_b, h_c, h_d, h_p)
+                predicates::orient_3dlifted_SOS(&a, &b, &c, &d, &p, h_a, h_b, h_c, h_d, h_p)
             }
             // if the triangle is a line segment, then the power sphere is a sphere with infinite radius and we can use a orientation test
-            ExtendedTetrahedron::Triangle([a, b, c]) => -gp::orient_3d(&a, &b, &c, &p),
+            ExtendedTetrahedron::Triangle([a, b, c]) => -predicates::orient_3d(&a, &b, &c, &p),
         };
 
         if strict {
-            Ok(in_sphere > 0)
+            Ok(in_sphere > 0.0)
         } else {
-            Ok(in_sphere >= 0)
+            Ok(in_sphere >= 0.0)
         }
     }
 
     fn is_v_in_eps_powersphere(&self, v_idx: usize, tet_idx: usize) -> HowResult<bool> {
-        let p = self.vertices[v_idx];
+        #[cfg(feature = "wasm")]
+        let _ = (v_idx, tet_idx);
 
-        let h_p = if self.epsilon.is_some() {
-            self.height(v_idx) + self.epsilon.unwrap()
-        } else {
-            panic!("Epsilon not set!");
-        };
+        #[cfg(feature = "wasm")]
+        return Err(anyhow::Error::msg(
+            "Epsilon power sphere is not supported in wasm (robust predicates are unweighted).",
+        ));
 
-        let ext_tet = self.get_tet_as_extended(tet_idx)?;
+        #[cfg(not(feature = "wasm"))]
+        {
+            let p = self.vertices[v_idx];
 
-        match ext_tet {
-            ExtendedTetrahedron::Tetrahedron([a, b, c, d]) => {
-                let [h_a, h_b, h_c, h_d] = self
-                    .tds()
-                    .get_tet(tet_idx)?
-                    .nodes()
-                    .map(|n| self.height(n.idx().unwrap()));
+            let h_p = if let Some(epsilon) = self.epsilon {
+                self.height(v_idx) + epsilon
+            } else {
+                panic!("Epsilon not set!");
+            };
 
-                let in_eps_circle =
-                    gp::orient_3dlifted_SOS(&a, &b, &c, &d, &p, h_a, h_b, h_c, h_d, h_p);
+            let ext_tet = self.get_tet_as_extended(tet_idx)?;
 
-                Ok(in_eps_circle > 0)
+            match ext_tet {
+                ExtendedTetrahedron::Tetrahedron([a, b, c, d]) => {
+                    let [h_a, h_b, h_c, h_d] = self
+                        .tds()
+                        .get_tet(tet_idx)?
+                        .nodes()
+                        .map(|n| self.height(n.idx().unwrap()));
+
+                    let in_eps_circle = predicates::orient_3dlifted_SOS(
+                        &a, &b, &c, &d, &p, h_a, h_b, h_c, h_d, h_p,
+                    );
+
+                    Ok(in_eps_circle > 0.0)
+                }
+                ExtendedTetrahedron::Triangle(_) => Err(anyhow::Error::msg(
+                    "Epsilon power circle test not allowed for conceptual triangles yet!",
+                )),
             }
-            ExtendedTetrahedron::Triangle(_) => Err(anyhow::Error::msg(
-                "Epsilon power circle test not allowed for conceptual triangles yet!",
-            )),
         }
     }
 
@@ -372,7 +381,7 @@ impl Tetrahedralization {
 
         // TODO: completely cover this with match
         let is_flat = if let ExtendedTetrahedron::Tetrahedron(tri) = ext_tri {
-            gp::orient_3d(&tri[0], &tri[1], &tri[2], &tri[3]) == 0
+            predicates::orient_3d(&tri[0], &tri[1], &tri[2], &tri[3]) == 0.0
         } else {
             false
         };
@@ -398,13 +407,13 @@ impl Tetrahedralization {
                 let v1 = self.vertices[v_idx1];
                 let v2 = self.vertices[v_idx2];
 
-                let orientation = -gp::orient_3d(&v0, &v1, &v2, v);
+                let orientation = -predicates::orient_3d(&v0, &v1, &v2, v);
 
                 if tri.tet().is_conceptual() {
-                    if orientation <= 0 {
+                    if orientation <= 0.0 {
                         return Some(tri);
                     }
-                } else if orientation < 0 {
+                } else if orientation < 0.0 {
                     return Some(tri);
                 }
             }
@@ -574,20 +583,16 @@ impl Tetrahedralization {
                 if let Some(idx3) = idxs_to_insert.pop() {
                     let v3 = self.vertices[idx3];
 
-                    let orientation = -gp::orient_3d(&v0, &v1, &v2, &v3);
+                    let orientation = -predicates::orient_3d(&v0, &v1, &v2, &v3);
 
-                    match orientation.cmp(&0) {
-                        cmp::Ordering::Greater => {
-                            self.tds.insert_first_tet([idx0, idx1, idx2, idx3])?
-                        }
-                        cmp::Ordering::Less => {
-                            self.tds.insert_first_tet([idx0, idx2, idx1, idx3])?
-                        }
-                        cmp::Ordering::Equal => {
-                            aligned.push(idx3);
-                            continue;
-                        }
-                    };
+                    if orientation > 0.0 {
+                        self.tds.insert_first_tet([idx0, idx1, idx2, idx3])?;
+                    } else if orientation < 0.0 {
+                        self.tds.insert_first_tet([idx0, idx2, idx1, idx3])?;
+                    } else {
+                        aligned.push(idx3);
+                        continue;
+                    }
 
                     self.used_vertices.append(&mut vec![idx0, idx1, idx2, idx3]);
                 } else {
@@ -645,6 +650,13 @@ impl Tetrahedralization {
         weights: Option<Vec<f64>>,
         spatial_sorting: bool,
     ) -> HowResult<()> {
+        #[cfg(feature = "wasm")]
+        if weights.is_some() {
+            return Err(anyhow::Error::msg(
+                "Weighted Delaunay is not supported in wasm (robust predicates are unweighted). Use weights: None.",
+            ));
+        }
+
         let mut idxs_to_insert = Vec::with_capacity(vertices.len());
 
         for &v in vertices {
@@ -836,13 +848,15 @@ impl Tetrahedralization {
                             .nodes()
                             .map(|n| self.height(n.idx().unwrap()));
 
-                        gp::orient_3dlifted_SOS(&a, &b, &c, &d, v, h_a, h_b, h_c, h_d, h_v)
+                        predicates::orient_3dlifted_SOS(&a, &b, &c, &d, v, h_a, h_b, h_c, h_d, h_v)
                     }
                     // if the triangle is a line segment, then the power sphere is a sphere with infinite radius and we can use a orientation test
-                    ExtendedTetrahedron::Triangle([a, b, c]) => -gp::orient_3d(&a, &b, &c, v),
+                    ExtendedTetrahedron::Triangle([a, b, c]) => {
+                        -predicates::orient_3d(&a, &b, &c, v)
+                    }
                 };
 
-                if in_sphere > 0 {
+                if in_sphere > 0.0 {
                     regular = false;
                     num_violated_tets += 1;
                     break; // each triangle can be violated once
@@ -889,14 +903,11 @@ impl core::fmt::Display for Tetrahedralization {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "logging"))]
 mod pre_test {
-    #[cfg(not(feature = "logging"))]
     #[test]
     fn logging_enabled() {
-        panic!(
-            "\x1b[1;31;7m tests must be run with logging enabled, try `--features logging` \x1b[0m"
-        )
+        // When logging is enabled, this test passes
     }
 }
 

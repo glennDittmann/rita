@@ -1,9 +1,9 @@
 use super::{hedge_iterator::HedgeIterator, tri_iterator::TriIterator};
 use crate::{VertexNode, utils::types::HedgeIteratorIdx};
 
+use crate::predicates;
 use alloc::vec::Vec;
 use anyhow::{Ok as HowOk, Result as HowResult};
-use geogram_predicates as gp;
 
 const INACTIVE: usize = usize::MAX;
 
@@ -69,7 +69,7 @@ impl TriDataStructure {
     }
 
     /// Insert an initial triangle into the triangulation.
-    pub fn add_init_tri(&mut self, v_idxs: [usize; 3]) -> HowResult<[TriIterator; 4]> {
+    pub fn add_init_tri(&mut self, v_idxs: [usize; 3]) -> HowResult<[TriIterator<'_>; 4]> {
         if self.num_tris() > 0 {
             return Err(anyhow::Error::msg(
                 "Triangulation already contains triangles!",
@@ -118,7 +118,7 @@ impl TriDataStructure {
         &mut self,
         idx_to_remove: usize,
         v_idx: usize,
-    ) -> HowResult<[TriIterator; 3]> {
+    ) -> HowResult<[TriIterator<'_>; 3]> {
         if idx_to_remove > self.num_tris() + self.num_deleted_tris {
             return Err(anyhow::Error::msg("Triangle index out of bounds!"));
         }
@@ -162,7 +162,7 @@ impl TriDataStructure {
     }
 
     /// Flips an edge that internally connects two triangles to an edge that connects the other two triangles.
-    pub fn flip_2_to_2(&mut self, idx: usize) -> HowResult<[TriIterator; 2]> {
+    pub fn flip_2_to_2(&mut self, idx: usize) -> HowResult<[TriIterator<'_>; 2]> {
         let hedge_twin_idx = self.hedge_twins[idx];
 
         let tri1_idx = idx / 3;
@@ -237,7 +237,7 @@ impl TriDataStructure {
         idxs_to_flip: [usize; 3],
         reflex_node_idx: usize,
         vertices: &[[f64; 2]],
-    ) -> HowResult<TriIterator> {
+    ) -> HowResult<TriIterator<'_>> {
         // Each of the three triangles has one edge that does not contain the reflex node. i.e. is not shared with the other two triangles
         // these edges form the new triangle
         // we will find these edges (compare with the reflex node idx) and also take the edges respective twin hedge idxs
@@ -296,13 +296,13 @@ impl TriDataStructure {
         // 2.1 check orientation of the new triangle and swap if necessary
         // TODO Note: we might be able to infer this information faster than with the predicate (e.g. by if else combinations)
         //            but the flip appears not so often, such that it is sufficient for now
-        let orient = gp::orient_2d(
+        let orient = predicates::orient_2d(
             &vertices[starting_node0.idx().unwrap()],
             &vertices[starting_node1.idx().unwrap()],
             &vertices[starting_node2.idx().unwrap()],
         );
 
-        if orient == -1 {
+        if orient < 0.0 {
             // swap second and third edge
             core::mem::swap(&mut starting_node1, &mut starting_node2);
             core::mem::swap(&mut twin_idx1, &mut twin_idx2);
@@ -353,7 +353,7 @@ impl TriDataStructure {
     }
 
     /// Retrieve a half-edge iterator by index.
-    pub fn get_hedge(&self, idx: usize) -> HowResult<HedgeIterator> {
+    pub fn get_hedge(&self, idx: usize) -> HowResult<HedgeIterator<'_>> {
         if idx >= self.hedge_starting_nodes.len() {
             return Err(anyhow::Error::msg("Hedge index out of bounds"));
         }
@@ -362,7 +362,7 @@ impl TriDataStructure {
     }
 
     /// Retrieve a half-tri iterator by index.
-    pub fn get_tri(&self, idx: usize) -> HowResult<TriIterator> {
+    pub fn get_tri(&self, idx: usize) -> HowResult<TriIterator<'_>> {
         if idx >= self.num_tris() + self.num_deleted_tris {
             // - num_deleted_tris because we have to account for the deleted, that basically clog up array indices
             return Err(anyhow::Error::msg("Tri index out of bounds!"));

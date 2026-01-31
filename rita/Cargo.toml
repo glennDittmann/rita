@@ -21,7 +21,7 @@ readme = "../README.md"
 
 [dependencies]
 anyhow = { version = "1.0", default-features = false }
-geogram_predicates = "0.2.1"
+geogram_predicates = { version = "0.2.1", optional = true }
 log = { version = "0.4", optional = true }
 nalgebra = { version = "0.33", features = [
     "libm",
@@ -29,14 +29,18 @@ nalgebra = { version = "0.33", features = [
     "matrixmultiply",
 ], default-features = false }
 rayon = "1.10"
+robust = { version = "1.2", optional = true }
 arbitrary = { version = "1.4", optional = true, features = ["derive"] }
 
 [dev-dependencies]
 rita_test_utils = { path = "../rita_test_utils" }
 
 [features]
-default = ["std"]
+default = ["std", "geogram"]
 std = ["anyhow/std", "nalgebra/std"]
+geogram = ["dep:geogram_predicates"]
+# wasm: use pure-Rust robust predicates (no weighted Delaunay). For wasm32 build with: --no-default-features --features "std,wasm"
+wasm = ["dep:robust"]
 timing = ["std"]
 logging = ["dep:log"]
 log_timing = ["logging", "timing"]

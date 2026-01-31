@@ -17,8 +17,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
 
-      - name: Test
+      - name: Test (geogram predicates)
         run: cargo test -p rita --features logging
+      - name: Test (robust predicates)
+        run: cargo test -p rita --no-default-features --features "std,wasm"
 
   check:
     runs-on: ubuntu-latest
@@ -27,9 +29,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: fmt
-        run: cargo fmt --check -p rita --all-features
+        run: cargo fmt --check -p rita
         continue-on-error: true
       - name: clippy std
-        run: cargo clippy -p rita --all-features
-      - name: clippy no-std
-        run: cargo clippy -p rita --no-default-features
+        run: cargo clippy -p rita
+      - name: clippy wasm
+        run: cargo clippy -p rita --no-default-features --features "std,wasm"

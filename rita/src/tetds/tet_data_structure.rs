@@ -96,7 +96,7 @@ impl TetDataStructure {
         }
     }
 
-    const fn half_triangle(&self, ind_halftriangle: usize) -> HalfTriIterator {
+    const fn half_triangle(&self, ind_halftriangle: usize) -> HalfTriIterator<'_> {
         // TODO: remove this, this is just HalfTriIterator::new(self, ind_halftriangle, ind_halfedge)
         HalfTriIterator {
             tds: self,
@@ -105,7 +105,7 @@ impl TetDataStructure {
     }
 
     /// Gets halfedge iterator from index
-    pub fn get_half_tri(&self, half_tri_idx: usize) -> HowResult<HalfTriIterator> {
+    pub fn get_half_tri(&self, half_tri_idx: usize) -> HowResult<HalfTriIterator<'_>> {
         if half_tri_idx < self.half_tri_opposite.len() {
             HowOk(self.half_triangle(half_tri_idx))
         } else {
@@ -134,7 +134,7 @@ impl TetDataStructure {
         num_casual_tets
     }
 
-    const fn tet(&self, ind_tetrahedron: usize) -> TetIterator {
+    const fn tet(&self, ind_tetrahedron: usize) -> TetIterator<'_> {
         // TODO: remove this, this is just TetIterator::new(self, ind_halftriangle, ind_halfedge)
         TetIterator {
             tds: self,
@@ -143,7 +143,7 @@ impl TetDataStructure {
     }
 
     /// Gets tetrahedron iterator from index
-    pub fn get_tet(&self, ind_tetrahedron: usize) -> HowResult<TetIterator> {
+    pub fn get_tet(&self, ind_tetrahedron: usize) -> HowResult<TetIterator<'_>> {
         if ind_tetrahedron < self.num_tets {
             HowOk(self.tet(ind_tetrahedron))
         } else {
@@ -161,7 +161,7 @@ impl TetDataStructure {
         &self,
         node0: &VertexNode,
         node1: &VertexNode,
-    ) -> Vec<HedgeIterator> {
+    ) -> Vec<HedgeIterator<'_>> {
         let mut hedges = Vec::new();
 
         for i in 0..self.num_tets() {
@@ -204,7 +204,7 @@ impl TetDataStructure {
         node1: &VertexNode,
         node2: &VertexNode,
         node3: &VertexNode,
-    ) -> Option<HalfTriIterator> {
+    ) -> Option<HalfTriIterator<'_>> {
         for i in 0..self.num_tets {
             let first_node = i << 2;
             let mut sub_ind_v0 = 4;
@@ -247,7 +247,7 @@ impl TetDataStructure {
     }
 
     /// Gets tetrahedra containing a specific node
-    pub fn get_tet_containing(&self, node: &VertexNode) -> Vec<TetIterator> {
+    pub fn get_tet_containing(&self, node: &VertexNode) -> Vec<TetIterator<'_>> {
         let mut tets = Vec::new();
 
         for i in 0..self.num_tets {
@@ -565,7 +565,7 @@ impl TetDataStructure {
     }
 
     /// Inserts a first tetrahedron in the structure
-    pub fn insert_first_tet(&mut self, nodes: [usize; 4]) -> HowResult<[TetIterator; 4]> {
+    pub fn insert_first_tet(&mut self, nodes: [usize; 4]) -> HowResult<[TetIterator<'_>; 4]> {
         if self.num_tets != 0 {
             return Err(anyhow::Error::msg("Already tetrahedra in simplicial"));
         }
