@@ -27,3 +27,6 @@ pub mod tetrahedralization;
 pub mod triangulation;
 mod trids;
 mod utils;
+
+#[cfg(feature = "wasm")]
+pub mod wasm;

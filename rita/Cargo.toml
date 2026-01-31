@@ -13,11 +13,13 @@ keywords = [
     "math",
 ]
 categories = ["algorithms", "graphics"]
-
 repository = "https://github.com/glennDittmann/rita"
 authors = ["Glenn Dittmann <glenn.dittmann@posteo.de>"]
 license = "MIT"
 readme = "../README.md"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 anyhow = { version = "1.0", default-features = false }
@@ -30,6 +32,8 @@ nalgebra = { version = "0.33", features = [
 ], default-features = false }
 rayon = "1.10"
 robust = { version = "1.2", optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
+js-sys = { version = "0.3", optional = true }
 arbitrary = { version = "1.4", optional = true, features = ["derive"] }
 
 [dev-dependencies]
@@ -39,8 +43,8 @@ rita_test_utils = { path = "../rita_test_utils" }
 default = ["std", "geogram"]
 std = ["anyhow/std", "nalgebra/std"]
 geogram = ["dep:geogram_predicates"]
-# wasm: use pure-Rust robust predicates (no weighted Delaunay). For wasm32 build with: --no-default-features --features "std,wasm"
-wasm = ["dep:robust"]
+# wasm: use pure-Rust robust predicates + JS API. For wasm32: --no-default-features --features "std,wasm"
+wasm = ["dep:robust", "dep:wasm-bindgen", "dep:js-sys"]
 timing = ["std"]
 logging = ["dep:log"]
 log_timing = ["logging", "timing"]

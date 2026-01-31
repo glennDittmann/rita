@@ -3069,11 +3069,13 @@ dependencies = [
  "anyhow",
  "arbitrary",
  "geogram_predicates",
+ "js-sys",
  "log",
  "nalgebra",
  "rayon",
  "rita_test_utils",
  "robust",
+ "wasm-bindgen",
 ]
 
 [[package]]

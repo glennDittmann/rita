@@ -64,6 +64,19 @@ The workaround is to have an abstraction layer over the geometric predicates. Fo
 When activating `wasm` the fallback rust-only predicates will be used. The downside of these is that they do not support lifted orientation test, i.e. we can not compute weighted Delaunay triangulations.
 For the majority of the use cases however this is fine, and maybe `robust` can be extended in the future to support the weighted predicates as well.
 
+### Building and publishing the WASM package
+The name `rita` is already taken on npm, so **pass the scope at build time** so the generated `package.json` gets a scoped name (e.g. `@lempf/rita`). If you build without `--scope`, the package name stays `rita` and publish will try to use the existing npm package.
+
+Build with your npm scope (use `--` so `--no-default-features` and `--features` go to cargo, not wasm-pack):
+```bash
+wasm-pack build rita --scope lempf --target web -- --no-default-features --features "std,wasm"
+```
+Then publish (scoped packages require `--access public`):
+```bash
+cd rita/pkg && npm publish --access=public
+```
+Install as `npm install @lempf/rita`.
+
 ## Testing
 To make sure both predicate libraries produce the same results tests can be run for both features.
 
