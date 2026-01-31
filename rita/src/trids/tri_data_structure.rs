@@ -1,9 +1,9 @@
 use super::{hedge_iterator::HedgeIterator, tri_iterator::TriIterator};
 use crate::{VertexNode, utils::types::HedgeIteratorIdx};
 
+use crate::predicates;
 use alloc::vec::Vec;
 use anyhow::{Ok as HowOk, Result as HowResult};
-use crate::predicates;
 
 const INACTIVE: usize = usize::MAX;
 
