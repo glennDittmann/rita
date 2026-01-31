@@ -1,10 +1,10 @@
 use alloc::{vec, vec::Vec};
-use core::cmp;
 use core::panic;
 
 // TODO: we could allow the epsilon filter on insertion also allow to happen, when the inserted vertex is in a casual triangle, i.e. outside the c-hull
 // TODO: we could also incorporate that in the 3->1 flip, as to remove points in a later stage of the algo (not just at insertion)
 
+use crate::predicates;
 use crate::{
     VertexNode,
     trids::{
@@ -18,7 +18,6 @@ use crate::{
     },
 };
 use anyhow::{Ok as HowOk, Result as HowResult};
-use geogram_predicates as gp;
 #[cfg(feature = "logging")]
 use log::error;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -56,10 +55,9 @@ pub(crate) enum Flip {
 ///     [1.5, 1.5],
 ///     [3.0, 1.0],
 /// ];
-/// let weights = vec![0.2, 0.3, 0.55, 0.5, 0.6, 0.4, 0.65, 0.7, 0.85, 0.35];
 ///
 /// let mut triangulation = Triangulation::new(None); // specify epsilon here
-/// let result = triangulation.insert_vertices(&vertices, Some(weights), true);  // last parameter toggles spatial sorting
+/// let result = triangulation.insert_vertices(&vertices, None, true);  // None = unweighted; use Some(weights) with geogram for weighted
 ///
 /// assert_eq!(triangulation.par_is_regular(false), 1.0);
 /// ```
@@ -207,13 +205,13 @@ impl Triangulation {
                 let v0 = self.vertices()[v0];
                 let v1 = self.vertices()[v1];
 
-                let orientation = gp::orient_2d(&v0, &v1, v);
+                let orientation = predicates::orient_2d(&v0, &v1, v);
 
                 if hedge.tri().is_conceptual() {
-                    if orientation <= 0 {
+                    if orientation <= 0.0 {
                         return Some(hedge.clone());
                     }
-                } else if orientation < 0 {
+                } else if orientation < 0.0 {
                     return Some(hedge.clone());
                 }
             }
@@ -277,19 +275,17 @@ impl Triangulation {
                 if let Some(idx2) = v_idxs.pop() {
                     let v2 = self.vertices()[idx2];
 
-                    let orientation = gp::orient_2d(&v0, &v1, &v2);
+                    let orientation = predicates::orient_2d(&v0, &v1, &v2);
 
                     // insert the triangle in ccw order, or if aligned, find another point to build the starting triangle
-                    match orientation.cmp(&0) {
-                        cmp::Ordering::Greater => {
-                            self.tds_mut().add_init_tri([idx0, idx1, idx2])?
-                        }
-                        cmp::Ordering::Less => self.tds_mut().add_init_tri([idx0, idx2, idx1])?,
-                        cmp::Ordering::Equal => {
-                            aligned.push(idx2);
-                            continue;
-                        }
-                    };
+                    if orientation > 0.0 {
+                        self.tds_mut().add_init_tri([idx0, idx1, idx2])?;
+                    } else if orientation < 0.0 {
+                        self.tds_mut().add_init_tri([idx0, idx2, idx1])?;
+                    } else {
+                        aligned.push(idx2);
+                        continue;
+                    }
 
                     self.used_vertices.append(&mut vec![idx0, idx1, idx2]);
                 } else {
@@ -361,6 +357,13 @@ impl Triangulation {
         weights: Option<Vec<f64>>,
         spatial_sorting: bool,
     ) -> HowResult<()> {
+        #[cfg(feature = "wasm")]
+        if weights.is_some() {
+            return Err(anyhow::Error::msg(
+                "Weighted Delaunay is not supported in wasm (robust predicates are unweighted). Use weights: None.",
+            ));
+        }
+
         let mut idxs_to_insert = Vec::new();
 
         for v in vertices {
@@ -520,7 +523,7 @@ impl Triangulation {
 
         let is_flat = match tri {
             TriangleExtended::Triangle(tri_idxs) => {
-                gp::orient_2d(&tri_idxs[0], &tri_idxs[1], &tri_idxs[2]) == 0
+                predicates::orient_2d(&tri_idxs[0], &tri_idxs[1], &tri_idxs[2]) == 0.0
             }
             TriangleExtended::ConceptualTriangle(_) => false, // the conceptual triangle can't be flat
         };
@@ -543,45 +546,56 @@ impl Triangulation {
                     .nodes()
                     .map(|n| self.height(n.idx().unwrap()));
 
-                gp::orient_2dlifted_SOS(&a, &b, &c, &p, h_a, h_b, h_c, h_p)
+                predicates::orient_2dlifted_SOS(&a, &b, &c, &p, h_a, h_b, h_c, h_p)
             }
             // if the triangle is a line segment, then the power circle is a circle with infinite radius and we can use an orientation test
             TriangleExtended::ConceptualTriangle(tri_idxs) => {
-                gp::orient_2d(&tri_idxs[0], &tri_idxs[1], &p)
+                predicates::orient_2d(&tri_idxs[0], &tri_idxs[1], &p)
             }
         };
 
-        HowOk(in_circle > 0)
+        HowOk(in_circle > 0.0)
     }
 
-    /// Panics if `self.epsilon` is not set
+    /// Panics if `self.epsilon` is not set.
+    /// When `wasm` feature is on, returns an error (epsilon power circle requires weighted predicates).
     pub(crate) fn is_v_in_eps_powercircle(&self, v_idx: usize, tri_idx: usize) -> HowResult<bool> {
-        let p = self.vertices()[v_idx];
+        #[cfg(feature = "wasm")]
+        let _ = (v_idx, tri_idx);
+        #[cfg(feature = "wasm")]
+        return Err(anyhow::Error::msg(
+            "Epsilon power circle is not supported in wasm (robust predicates are unweighted).",
+        ));
 
-        let h_p = if self.epsilon.is_some() {
-            self.height(v_idx) + self.epsilon.unwrap()
-        } else {
-            panic!("Epsilon not set!");
-        };
+        #[cfg(not(feature = "wasm"))]
+        {
+            let p = self.vertices()[v_idx];
 
-        let tri = self.get_tri_type(tri_idx)?;
+            let h_p = if self.epsilon.is_some() {
+                self.height(v_idx) + self.epsilon.unwrap()
+            } else {
+                panic!("Epsilon not set!");
+            };
 
-        match tri {
-            TriangleExtended::Triangle([a, b, c]) => {
-                let [h_a, h_b, h_c] = self
-                    .tds()
-                    .get_tri(tri_idx)?
-                    .nodes()
-                    .map(|n| self.height(n.idx().unwrap()));
+            let tri = self.get_tri_type(tri_idx)?;
 
-                let in_eps_circle = gp::orient_2dlifted_SOS(&a, &b, &c, &p, h_a, h_b, h_c, h_p);
+            match tri {
+                TriangleExtended::Triangle([a, b, c]) => {
+                    let [h_a, h_b, h_c] = self
+                        .tds()
+                        .get_tri(tri_idx)?
+                        .nodes()
+                        .map(|n| self.height(n.idx().unwrap()));
 
-                HowOk(in_eps_circle > 0)
+                    let in_eps_circle =
+                        predicates::orient_2dlifted_SOS(&a, &b, &c, &p, h_a, h_b, h_c, h_p);
+
+                    HowOk(in_eps_circle > 0.0)
+                }
+                TriangleExtended::ConceptualTriangle(_) => Err(anyhow::Error::msg(
+                    "Epsilon power circle test not allowed for conceptual triangles yet!",
+                )),
             }
-            // if the triangle is a line segment, then the power circle is a circle with infinite radius and we can use a orientation test
-            TriangleExtended::ConceptualTriangle(_) => Err(anyhow::Error::msg(
-                "Epsilon power circle test not allowed for conceptual triangles yet!",
-            )),
         }
     }
 
@@ -790,15 +804,15 @@ impl Triangulation {
                             .nodes()
                             .map(|n| self.height(n.idx().unwrap()));
 
-                        gp::orient_2dlifted_SOS(&a, &b, &c, v, h_a, h_b, h_c, h_v)
+                        predicates::orient_2dlifted_SOS(&a, &b, &c, v, h_a, h_b, h_c, h_v)
                     }
                     // if the triangle is a line segment, then the power circle is a circle with infinite radius and we can use an orientation test
                     TriangleExtended::ConceptualTriangle(tri_idxs) => {
-                        gp::orient_2d(&tri_idxs[0], &tri_idxs[1], v)
+                        predicates::orient_2d(&tri_idxs[0], &tri_idxs[1], v)
                     }
                 };
 
-                if in_circle > 0 {
+                if in_circle > 0.0 {
                     regular = false;
                     num_violated_triangles += 1;
                     break; // each triangle can be violated once
@@ -1066,10 +1080,10 @@ impl Triangulation {
                     let b_help = self.vertices[hedge.end_node().idx().unwrap()];
                     let p_help = [(a_help[0] + b_help[0]) / 2.0, (a_help[1] + b_help[1]) / 2.0];
 
-                    let side_p_help_a = gp::orient_2d(&o, &a, &p_help);
-                    let side_p_help_b = gp::orient_2d(&o, &b, &p_help);
-                    let side_v_a = gp::orient_2d(&o, &a, &v);
-                    let side_v_b = gp::orient_2d(&o, &b, &v);
+                    let side_p_help_a = predicates::orient_2d(&o, &a, &p_help);
+                    let side_p_help_b = predicates::orient_2d(&o, &b, &p_help);
+                    let side_v_a = predicates::orient_2d(&o, &a, &v);
+                    let side_v_b = predicates::orient_2d(&o, &b, &v);
 
                     if side_p_help_a == side_v_a && side_p_help_b == side_v_b {
                         return HowOk(hedge.twin().tri().idx);
@@ -1086,9 +1100,10 @@ impl Triangulation {
                     let c_vec = o_vec + oc;
                     let c = [c_vec[0], c_vec[1]];
 
-                    if gp::orient_2d(&o, &c, &v) == gp::orient_2d(&o, &c, &a) {
+                    if predicates::orient_2d(&o, &c, &v) == predicates::orient_2d(&o, &c, &a) {
                         return HowOk(a_tri_idx);
-                    } else if gp::orient_2d(&o, &c, &v) == gp::orient_2d(&o, &c, &b) {
+                    } else if predicates::orient_2d(&o, &c, &v) == predicates::orient_2d(&o, &c, &b)
+                    {
                         return HowOk(b_tri_idx);
                     } else {
                         panic!("Vertex is not on either side of the bisector");
@@ -1144,8 +1159,8 @@ impl Triangulation {
         //     - draw a line through p,a
         //     - if q, b are on different side of the line, then p is reflex, else convex
         // check if side for d,b for line ca, i.e. c reflex
-        let side_d = gp::orient_2d(&self.vertices[c], &self.vertices[a], &self.vertices[d]);
-        let side_b = gp::orient_2d(&self.vertices[c], &self.vertices[a], &self.vertices[b]);
+        let side_d = predicates::orient_2d(&self.vertices[c], &self.vertices[a], &self.vertices[d]);
+        let side_b = predicates::orient_2d(&self.vertices[c], &self.vertices[a], &self.vertices[b]);
         if side_d != side_b {
             num_reflex_points += 1;
             c_reflex = true;
@@ -1153,8 +1168,8 @@ impl Triangulation {
 
         // check side for c,b for line da, i.e. d reflex
         // TODO only do this check if c is not reflex, i.e. since only one point can be reflex -> would remove 2 orientation tests in some cases
-        let side_c = gp::orient_2d(&self.vertices[d], &self.vertices[a], &self.vertices[c]);
-        let side_b = gp::orient_2d(&self.vertices[d], &self.vertices[a], &self.vertices[b]);
+        let side_c = predicates::orient_2d(&self.vertices[d], &self.vertices[a], &self.vertices[c]);
+        let side_b = predicates::orient_2d(&self.vertices[d], &self.vertices[a], &self.vertices[b]);
         if side_c != side_b {
             num_reflex_points += 1;
             d_reflex = true;
@@ -1234,21 +1249,20 @@ impl PartialEq for Triangulation {
 
 impl Eq for Triangulation {}
 
-#[cfg(test)]
+#[cfg(all(test, feature = "logging"))]
 mod pre_test {
-    #[cfg(not(feature = "logging"))]
     #[test]
     fn logging_enabled() {
-        panic!(
-            "\x1b[1;31;7m tests must be run with logging enabled, try `--features logging` \x1b[0m"
-        )
+        // When logging is enabled, this test passes; used to remind to use --features logging for full test output
     }
 }
 
-#[cfg(all(test, feature = "logging"))]
+#[cfg(all(test, any(feature = "logging", feature = "wasm")))]
 mod tests {
     use super::*;
-    use rita_test_utils::{sample_vertices_2d, sample_weights};
+    use rita_test_utils::sample_vertices_2d;
+    #[cfg(not(feature = "wasm"))]
+    use rita_test_utils::sample_weights;
 
     fn verify_triangulation(triangulation: &Triangulation) {
         let regularity = triangulation.par_is_regular(false);
@@ -1271,13 +1285,31 @@ mod tests {
         [1.5, 1.5],
         [3.0, 1.0],
     ];
+    #[cfg(not(feature = "wasm"))]
     const EXAMPLE_WEIGHTS: [f64; 10] = [
         0.681, 0.579, 0.5625, 0.86225, 10.0, 0.472, 0.5865, 0.59625, 0.51225, 7.0,
     ];
 
+    fn run_delaunay_2d_test() {
+        for n in NUM_VERTICES_LIST {
+            let vertices = sample_vertices_2d(n, None);
+
+            let mut triangulation = Triangulation::new(None);
+            let result = triangulation.insert_vertices(&vertices, None, true);
+
+            assert!(
+                result.is_ok(),
+                "insert_vertices failed: {}",
+                result.unwrap_err()
+            );
+
+            verify_triangulation(&triangulation);
+        }
+    }
+
     #[test]
     fn test_get_tris() {
-        // Test unweighted case
+        // Test unweighted case (runs with both geogram and wasm/robust)
         let mut triangulation = Triangulation::new(None);
         triangulation
             .insert_vertices(&EXAMPLE_VERTICES, None, true)
@@ -1288,37 +1320,35 @@ mod tests {
 
         assert!(tris.len() == 10, "Expected 10 triangles, got {num_tris}");
 
-        // Test weighted case
-        let mut triangulation = Triangulation::new(None);
-        triangulation
-            .insert_vertices(&EXAMPLE_VERTICES, Some(EXAMPLE_WEIGHTS.to_vec()), true)
-            .unwrap();
+        // Test weighted case (geogram only; wasm rejects weights)
+        #[cfg(not(feature = "wasm"))]
+        {
+            let mut triangulation = Triangulation::new(None);
+            triangulation
+                .insert_vertices(&EXAMPLE_VERTICES, Some(EXAMPLE_WEIGHTS.to_vec()), true)
+                .unwrap();
 
-        let tris = triangulation.tris();
-        let num_tris = tris.len();
+            let tris = triangulation.tris();
+            let num_tris = tris.len();
 
-        assert!(tris.len() == 8, "Expected 8 triangles, got {num_tris}");
+            assert!(tris.len() == 8, "Expected 8 triangles, got {num_tris}");
+        }
     }
 
     #[test]
     fn test_delaunay_2d() {
-        for n in NUM_VERTICES_LIST {
-            let vertices = sample_vertices_2d(n, None);
-
-            let mut triangulation = Triangulation::new(None);
-            let result = triangulation.insert_vertices(&vertices, None, true);
-
-            match result {
-                HowResult::Ok(_) => (),
-                Err(e) => {
-                    log::error!("Error: {}", e);
-                }
-            }
-
-            verify_triangulation(&triangulation);
-        }
+        run_delaunay_2d_test();
     }
 
+    /// Same as `test_delaunay_2d` but only compiled with `wasm` feature; verifies robust predicates.
+    #[cfg(feature = "wasm")]
+    #[test]
+    fn test_delaunay_2d_wasm() {
+        println!("Running test_delaunay_2d_wasm");
+        run_delaunay_2d_test();
+    }
+
+    #[cfg(not(feature = "wasm"))]
     #[test]
     fn test_weighted_delaunay_2d() {
         for n in NUM_VERTICES_LIST {
@@ -1328,12 +1358,11 @@ mod tests {
             let mut triangulation = Triangulation::new(None);
             let result = triangulation.insert_vertices(&vertices, Some(weights), true);
 
-            match result {
-                HowResult::Ok(_) => (),
-                Err(e) => {
-                    log::error!("Error: {}", e);
-                }
-            }
+            assert!(
+                result.is_ok(),
+                "insert_vertices failed: {}",
+                result.unwrap_err()
+            );
 
             verify_triangulation(&triangulation);
 
@@ -1346,6 +1375,8 @@ mod tests {
         }
     }
 
+    /// Epsilon power circle is not supported in wasm (robust predicates are unweighted).
+    #[cfg(not(feature = "wasm"))]
     #[test]
     fn test_eps_delaunay_2d() {
         for n in NUM_VERTICES_LIST {
@@ -1354,12 +1385,11 @@ mod tests {
             let mut triangulation = Triangulation::new(Some(1.0 / n as f64));
             let result = triangulation.insert_vertices(&vertices, None, true);
 
-            match result {
-                HowResult::Ok(_) => (),
-                Err(e) => {
-                    log::error!("Error: {}", e);
-                }
-            }
+            assert!(
+                result.is_ok(),
+                "insert_vertices failed: {}",
+                result.unwrap_err()
+            );
 
             verify_triangulation(&triangulation);
 
@@ -1372,6 +1402,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(feature = "wasm"))]
     #[test]
     fn test_eps_weighted_delaunay_2d() {
         for n in NUM_VERTICES_LIST {
@@ -1381,12 +1412,11 @@ mod tests {
             let mut triangulation = Triangulation::new(Some(1.0 / n as f64));
             let result = triangulation.insert_vertices(&vertices, Some(weights), true);
 
-            match result {
-                HowResult::Ok(_) => (),
-                Err(e) => {
-                    log::error!("Error: {}", e);
-                }
-            }
+            assert!(
+                result.is_ok(),
+                "insert_vertices failed: {}",
+                result.unwrap_err()
+            );
 
             verify_triangulation(&triangulation);
 

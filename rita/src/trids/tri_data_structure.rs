@@ -3,7 +3,7 @@ use crate::{VertexNode, utils::types::HedgeIteratorIdx};
 
 use alloc::vec::Vec;
 use anyhow::{Ok as HowOk, Result as HowResult};
-use geogram_predicates as gp;
+use crate::predicates;
 
 const INACTIVE: usize = usize::MAX;
 
@@ -296,13 +296,13 @@ impl TriDataStructure {
         // 2.1 check orientation of the new triangle and swap if necessary
         // TODO Note: we might be able to infer this information faster than with the predicate (e.g. by if else combinations)
         //            but the flip appears not so often, such that it is sufficient for now
-        let orient = gp::orient_2d(
+        let orient = predicates::orient_2d(
             &vertices[starting_node0.idx().unwrap()],
             &vertices[starting_node1.idx().unwrap()],
             &vertices[starting_node2.idx().unwrap()],
         );
 
-        if orient == -1 {
+        if orient < 0.0 {
             // swap second and third edge
             core::mem::swap(&mut starting_node1, &mut starting_node2);
             core::mem::swap(&mut twin_idx1, &mut twin_idx2);

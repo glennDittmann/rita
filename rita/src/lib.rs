@@ -4,6 +4,8 @@
 //!
 //! ## Features
 //! - `std` (default) - enables anyhow and nalgebra's std features
+//! - `geogram` (default) - uses [geogram_predicates] for robust predicates (FFI to C++); supports weighted Delaunay
+//! - `wasm` - uses pure-Rust [robust] predicates for wasm32 builds; **no weighted Delaunay** (use `weights: None`). Build with: `--no-default-features --features "std,wasm"`
 //! - `timing` - enables timing of function run time, this requires std
 //! - `logging` - uses `log` to record errors and warnings, along with some extra information
 //! - `log_timing` - enables logging and timing, to record timing info
@@ -19,6 +21,7 @@ pub use tetrahedralization::Tetrahedralization;
 pub use triangulation::Triangulation;
 
 pub mod node;
+mod predicates;
 mod tetds;
 pub mod tetrahedralization;
 pub mod triangulation;

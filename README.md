@@ -58,6 +58,21 @@ There might be duplicate and unnecessarily complex code.
 ## Robustness
 Robustness is achieved through [geogram_predicates](https://github.com/glenndittmann/geogram_predicates), which itself uses [cxx](https://github.com/dtolnay/cxx) to make the geometric predicates from [geogram](https://github.com/BrunoLevy/geogram) available in `rust`.
 
+## Wasm
+In order to have an easy wasm compilable target it is necessary to have a rust only version of this crate. The usage of `geogram_predicates` makes this difficult as its an ffi to the `geogram` c++ library.
+The workaround is to have an abstraction layer over the geometric predicates. For normal usage the `geogram_predicates` will be used.
+When activating `wasm` the fallback rust-only predicates will be used. The downside of these is that they do not support lifted orientation test, i.e. we can not compute weighted Delaunay triangulations.
+For the majority of the use cases however this is fine, and maybe `robust` can be extended in the future to support the weighted predicates as well.
+
+## Testing
+To make sure both predicate libraries produce the same results tests can be run for both features.
+
+### Testing with geogram_predicates
+`cargo test -p rita --features logging`
+
+### Testing with robust
+`cargo test -p rita --no-default-features --features "std,wasm"`
+
 ## Base implementation
 There is decent preliminary work done in the rust eco-system by [Bastien Durix](https://scholar.google.fr/citations?user=Crc4sdsAAAAJ&hl=fr) in the crate [simple_delaunay_lib](https://github.com/Ibujah/simple_delaunay_lib).
 
