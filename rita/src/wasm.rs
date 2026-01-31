@@ -1,8 +1,7 @@
 //! WASM bindings for 2D Delaunay triangulation.
 //!
 //! Provides a single function `triangulate` that takes flat vertex coordinates and optional
-//! epsilon, and returns triangles and vertices in the same shape as vita's TriangulationResult
-//! (vec of Triangle3, vec of Vertex3). For 2D, Vertex3 uses `y: 0` and `x,z` for the plane.
+//! epsilon, and returns triangles and vertices as 2D objects only: `{ x, y }`.
 
 use crate::triangulation::Triangulation;
 use wasm_bindgen::prelude::*;
@@ -16,8 +15,8 @@ use wasm_bindgen::prelude::*;
 ///
 /// # Returns
 /// A JavaScript object with:
-/// * `triangles` - Array of `{ id, a: { x, y, z }, b, c }` (2D: y = 0, x/z are the plane)
-/// * `vertices` - Array of `{ x, y, z }` (2D: y = 0)
+/// * `triangles` - Array of `{ id, a: { x, y }, b, c }`
+/// * `vertices` - Array of `{ x, y }`
 #[wasm_bindgen(js_name = triangulate)]
 pub fn triangulate_2d(vertices: &[f64], epsilon: Option<f64>) -> Result<JsValue, JsValue> {
     let vertices_2d = parse_vertices_2d(vertices)?;
@@ -61,16 +60,15 @@ fn parse_vertices_2d(flat: &[f64]) -> Result<Vec<[f64; 2]>, JsValue> {
     Ok(flat.chunks_exact(2).map(|c| [c[0], c[1]]).collect())
 }
 
-/// [x, y] -> { x, y: 0, z } (vita-style 2D vertex in Vertex3)
+/// [x, y] -> { x, y } (2D vertex, same dimension as input)
 fn vertex2_to_js(v: &[f64; 2]) -> JsValue {
     let obj = js_sys::Object::new();
     js_sys::Reflect::set(&obj, &"x".into(), &v[0].into()).unwrap();
-    js_sys::Reflect::set(&obj, &"y".into(), &0.0_f64.into()).unwrap();
-    js_sys::Reflect::set(&obj, &"z".into(), &v[1].into()).unwrap();
+    js_sys::Reflect::set(&obj, &"y".into(), &v[1].into()).unwrap();
     obj.into()
 }
 
-/// Triangle2 -> { id, a, b, c } with Vertex3 (2D: y = 0)
+/// Triangle2 -> { id, a, b, c } with each corner as { x, y }
 fn triangle_to_js(tri: &[[f64; 2]; 3], index: usize) -> Result<JsValue, JsValue> {
     let obj = js_sys::Object::new();
     js_sys::Reflect::set(&obj, &"id".into(), &format!("tri_{}", index).into())?;
