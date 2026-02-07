@@ -77,6 +77,48 @@ cd rita/pkg && npm publish --access=public
 ```
 Install as `npm install @lempf/rita`.
 
+### Usage in web
+
+The WASM build exposes two functions: `triangulate` (2D) and `triangulate3d` (3D). Both accept a flat array of coordinates and an optional `epsilon` (pass `null` to omit).
+
+**2D — triangles**
+
+```javascript
+import * as rita from '@lempf/rita';
+
+// Flat array: [x1, y1, x2, y2, ...]
+const vertices = [0, 0, 1, 0, 0.5, 1, 0.2, 0.3];
+const result = rita.triangulate(vertices, null);
+
+// result.triangles: Array<{ id: string, a: { x, y }, b: { x, y }, c: { x, y } }>
+// result.vertices:  Array<{ x, y }>
+console.log(result.triangles.length, result.vertices.length);
+```
+
+**3D — tetrahedra**
+
+```javascript
+import * as rita from '@lempf/rita';
+
+// Flat array: [x1, y1, z1, x2, y2, z2, ...]
+const vertices = [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0.5, 0.5];
+const result = rita.triangulate3d(vertices, null);
+
+// result.tetrahedra: Array<{ id: string, a: { x, y, z }, b, c, d }>
+// result.vertices:   Array<{ x, y, z }>
+console.log(result.tetrahedra.length, result.vertices.length);
+```
+
+**Data structures**
+
+| API            | Input (flat)   | Output                                                                 |
+|----------------|----------------|------------------------------------------------------------------------|
+| `triangulate`  | `[x, y, ...]`  | `{ triangles: [{ id, a, b, c }], vertices: [{ x, y }] }`              |
+| `triangulate3d`| `[x, y, z, ...]` | `{ tetrahedra: [{ id, a, b, c, d }], vertices: [{ x, y, z }] }`     |
+
+Corner fields `a`, `b`, `c` (and `d` for 3D) are vertex objects with `x`, `y` and optionally `z`. At least 3 points are required for 2D and 4 for 3D.
+Note: epsilon and weighted triangulations are not yet supported in wasm
+
 ## Testing
 To make sure both predicate libraries produce the same results tests can be run for both features.
 
