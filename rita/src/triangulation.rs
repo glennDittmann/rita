@@ -206,31 +206,47 @@ impl Triangulation {
         None
     }
 
+    fn vertex_from_node(&self, node: VertexNode) -> HowResult<Vertex2> {
+        match node {
+            VertexNode::Casual(idx) => HowOk(self.vertices[idx]),
+            _ => Err(anyhow::Error::msg("Expected a casual vertex node")),
+        }
+    }
+
+    fn triangle_from_nodes(&self, nodes: [VertexNode; 3]) -> HowResult<Triangle2> {
+        let [node0, node1, node2] = nodes;
+        HowOk([
+            self.vertex_from_node(node0)?,
+            self.vertex_from_node(node1)?,
+            self.vertex_from_node(node2)?,
+        ])
+    }
+
     /// For a tri idx get the triangle variant, i.e. a normal triangle, or a line with one of its three indices at infinity
     pub fn get_tri_type(&self, tri_idx: usize) -> HowResult<TriangleExtended> {
         let [node0, node1, node2] = self.tds.get_tri(tri_idx)?.nodes();
 
         let tri_extended = match (node0, node1, node2) {
             (VertexNode::Conceptual, VertexNode::Casual(idx1), VertexNode::Casual(idx2)) => {
-                let v1 = self.vertices[idx1];
-                let v2 = self.vertices[idx2];
-                TriangleExtended::ConceptualTriangle([v1, v2])
+                TriangleExtended::ConceptualTriangle([
+                    self.vertex_from_node(VertexNode::Casual(idx1))?,
+                    self.vertex_from_node(VertexNode::Casual(idx2))?,
+                ])
             }
             (VertexNode::Casual(idx0), VertexNode::Conceptual, VertexNode::Casual(idx2)) => {
-                let v0 = self.vertices[idx0];
-                let v2 = self.vertices[idx2];
-                TriangleExtended::ConceptualTriangle([v2, v0])
+                TriangleExtended::ConceptualTriangle([
+                    self.vertex_from_node(VertexNode::Casual(idx2))?,
+                    self.vertex_from_node(VertexNode::Casual(idx0))?,
+                ])
             }
             (VertexNode::Casual(idx0), VertexNode::Casual(idx1), VertexNode::Conceptual) => {
-                let v0 = self.vertices[idx0];
-                let v1 = self.vertices[idx1];
-                TriangleExtended::ConceptualTriangle([v0, v1])
+                TriangleExtended::ConceptualTriangle([
+                    self.vertex_from_node(VertexNode::Casual(idx0))?,
+                    self.vertex_from_node(VertexNode::Casual(idx1))?,
+                ])
             }
-            (VertexNode::Casual(idx0), VertexNode::Casual(idx1), VertexNode::Casual(idx2)) => {
-                let v0 = self.vertices[idx0];
-                let v1 = self.vertices[idx1];
-                let v2 = self.vertices[idx2];
-                TriangleExtended::Triangle([v0, v1, v2])
+            (VertexNode::Casual(..), VertexNode::Casual(..), VertexNode::Casual(..)) => {
+                TriangleExtended::Triangle(self.triangle_from_nodes([node0, node1, node2])?)
             }
             (_, _, _) => return Err(anyhow::Error::msg("An unexpected triangle case occurred")),
         };
@@ -992,13 +1008,7 @@ impl Triangulation {
                     return None;
                 }
 
-                let [node0, node1, node2] = tri.nodes();
-
-                Some([
-                    self.vertices[node0.idx().unwrap()],
-                    self.vertices[node1.idx().unwrap()],
-                    self.vertices[node2.idx().unwrap()],
-                ])
+                self.triangle_from_nodes(tri.nodes()).ok()
             })
             .collect()
     }

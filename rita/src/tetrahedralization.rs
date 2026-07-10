@@ -177,6 +177,32 @@ impl Tetrahedralization {
         &self.tds
     }
 
+    fn vertex_from_node(&self, node: VertexNode) -> HowResult<Vertex3> {
+        match node {
+            VertexNode::Casual(idx) => Ok(self.vertices[idx]),
+            _ => Err(anyhow::Error::msg("Expected a casual vertex node")),
+        }
+    }
+
+    fn triangle_from_nodes(&self, nodes: [VertexNode; 3]) -> HowResult<Triangle3> {
+        let [node0, node1, node2] = nodes;
+        Ok([
+            self.vertex_from_node(node0)?,
+            self.vertex_from_node(node1)?,
+            self.vertex_from_node(node2)?,
+        ])
+    }
+
+    fn tetrahedron_from_nodes(&self, nodes: [VertexNode; 4]) -> HowResult<Tetrahedron3> {
+        let [node0, node1, node2, node3] = nodes;
+        Ok([
+            self.vertex_from_node(node0)?,
+            self.vertex_from_node(node1)?,
+            self.vertex_from_node(node2)?,
+            self.vertex_from_node(node3)?,
+        ])
+    }
+
     /// Get the tetrahedra of the tetrahedralization as `Tetrahedron3`, i.e `[[f64; 3]; 4]`.
     ///
     /// Does not include conceptual tetrahedra, i.e. the convex hull faces
@@ -191,13 +217,7 @@ impl Tetrahedralization {
                     return None;
                 }
 
-                let [node0, node1, node2, node3] = tet.nodes();
-                Some([
-                    self.vertices[node0.idx().unwrap()],
-                    self.vertices[node1.idx().unwrap()],
-                    self.vertices[node2.idx().unwrap()],
-                    self.vertices[node3.idx().unwrap()],
-                ])
+                self.tetrahedron_from_nodes(tet.nodes()).ok()
             })
             .collect()
     }
@@ -216,57 +236,49 @@ impl Tetrahedralization {
                 VertexNode::Casual(v_idx1),
                 VertexNode::Casual(v_idx2),
                 VertexNode::Casual(v_idx3),
-            ) => {
-                let v1 = self.vertices[v_idx1];
-                let v2 = self.vertices[v_idx2];
-                let v3 = self.vertices[v_idx3];
-                ExtendedTetrahedron::Triangle([v1, v3, v2])
-            }
+            ) => ExtendedTetrahedron::Triangle(self.triangle_from_nodes([
+                VertexNode::Casual(v_idx1),
+                VertexNode::Casual(v_idx3),
+                VertexNode::Casual(v_idx2),
+            ])?),
             (
                 VertexNode::Casual(v_idx0),
                 VertexNode::Conceptual,
                 VertexNode::Casual(v_idx2),
                 VertexNode::Casual(v_idx3),
-            ) => {
-                let v0 = self.vertices[v_idx0];
-                let v2 = self.vertices[v_idx2];
-                let v3 = self.vertices[v_idx3];
-                ExtendedTetrahedron::Triangle([v0, v2, v3])
-            }
+            ) => ExtendedTetrahedron::Triangle(self.triangle_from_nodes([
+                VertexNode::Casual(v_idx0),
+                VertexNode::Casual(v_idx2),
+                VertexNode::Casual(v_idx3),
+            ])?),
             (
                 VertexNode::Casual(v_idx0),
                 VertexNode::Casual(v_idx1),
                 VertexNode::Conceptual,
                 VertexNode::Casual(v_idx3),
-            ) => {
-                let v0 = self.vertices[v_idx0];
-                let v1 = self.vertices[v_idx1];
-                let v3 = self.vertices[v_idx3];
-                ExtendedTetrahedron::Triangle([v0, v3, v1])
-            }
+            ) => ExtendedTetrahedron::Triangle(self.triangle_from_nodes([
+                VertexNode::Casual(v_idx0),
+                VertexNode::Casual(v_idx3),
+                VertexNode::Casual(v_idx1),
+            ])?),
             (
                 VertexNode::Casual(v_idx0),
                 VertexNode::Casual(v_idx1),
                 VertexNode::Casual(v_idx2),
                 VertexNode::Conceptual,
-            ) => {
-                let v0 = self.vertices[v_idx0];
-                let v1 = self.vertices[v_idx1];
-                let v2 = self.vertices[v_idx2];
-                ExtendedTetrahedron::Triangle([v0, v1, v2])
-            }
-            (
+            ) => ExtendedTetrahedron::Triangle(self.triangle_from_nodes([
                 VertexNode::Casual(v_idx0),
                 VertexNode::Casual(v_idx1),
                 VertexNode::Casual(v_idx2),
-                VertexNode::Casual(v_idx3),
-            ) => {
-                let v0 = self.vertices[v_idx0];
-                let v1 = self.vertices[v_idx1];
-                let v2 = self.vertices[v_idx2];
-                let v3 = self.vertices[v_idx3];
-                ExtendedTetrahedron::Tetrahedron([v0, v1, v2, v3])
-            }
+            ])?),
+            (
+                VertexNode::Casual(..),
+                VertexNode::Casual(..),
+                VertexNode::Casual(..),
+                VertexNode::Casual(..),
+            ) => ExtendedTetrahedron::Tetrahedron(
+                self.tetrahedron_from_nodes([node0, node1, node2, node3])?,
+            ),
             (_, _, _, _) => {
                 return Err(anyhow::Error::msg("Case should not happen"));
             }
