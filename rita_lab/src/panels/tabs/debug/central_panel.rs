@@ -39,7 +39,7 @@ fn draw_triangles(plot_ui: &mut PlotUi, triangulation_data: &mut TriangulationDa
             // todo use borrowed series
             Polygon::new(format!("Triangle {i}"), vec![a, b, c])
                 .fill_color(Color32::from_rgba_premultiplied(46, 128, 115, 2))
-                .width(1.0),
+                .width(1.0_f32),
         );
     }
 }

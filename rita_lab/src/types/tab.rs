@@ -1,14 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 /// The tab which is currently open.
-#[derive(PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Default, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Tab {
+    #[default]
     Lab,
     Debug,
-}
-
-impl Default for Tab {
-    fn default() -> Self {
-        Self::Lab
-    }
 }

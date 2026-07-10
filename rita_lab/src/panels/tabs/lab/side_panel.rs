@@ -6,7 +6,7 @@ use rita::Triangulation;
 use vertex_clustering::VertexClusterer2;
 
 use crate::{
-    types::{AppSettings, FileHandler, TriangulationData},
+    types::{FileHandler, TriangulationData},
     utils::{
         self, execute, get_example_weights, measure_time, sample_vertices_2d, sample_weights,
         scale_vertices_2d,
@@ -24,7 +24,6 @@ pub enum VertexGenerator {
 pub fn show(
     ctx: &Context,
     triangulation_data: &mut TriangulationData,
-    app_settings: &mut AppSettings,
     file_handler: &mut FileHandler,
 ) {
     egui::SidePanel::left("side_panel").show(ctx, |ui| {
@@ -32,7 +31,7 @@ pub fn show(
 
         vertex_generator(ui, triangulation_data, file_handler);
 
-        triangulation_computer(ui, triangulation_data, app_settings);
+        triangulation_computer(ui, triangulation_data);
 
         metric_list(ui, triangulation_data);
 
@@ -168,10 +167,11 @@ fn vertex_generator(
                         triangulation_data.grid_size,
                     ));
                 }
-                if ui.button("Simplify").clicked() && triangulation_data.grid_sampler.is_some() {
-                    let (simplified_vs, _) =
-                        triangulation_data.grid_sampler.as_ref().unwrap().simplify();
-                    triangulation_data.vertices = simplified_vs;
+                if ui.button("Simplify").clicked() {
+                    if let Some(grid_sampler) = &triangulation_data.grid_sampler {
+                        let (simplified_vs, _) = grid_sampler.simplify();
+                        triangulation_data.vertices = simplified_vs;
+                    }
                 }
                 ui.label("Grid Size:");
                 ui.add(
@@ -198,27 +198,19 @@ fn vertex_generator(
                         triangulation_data.grid_size * triangulation_data.scale_factor,
                     ));
                 }
-                if ui.button("Simplify").clicked()
-                    && triangulation_data.scaled_grid_sampler.is_some()
-                {
-                    let (simplified_vs, _) = triangulation_data
-                        .scaled_grid_sampler
-                        .as_ref()
-                        .unwrap()
-                        .simplify();
-                    triangulation_data.scaled_vertices = simplified_vs;
+                if ui.button("Simplify").clicked() {
+                    if let Some(scaled_grid_sampler) = &triangulation_data.scaled_grid_sampler {
+                        let (simplified_vs, _) = scaled_grid_sampler.simplify();
+                        triangulation_data.scaled_vertices = simplified_vs;
+                    }
                 }
             })
         });
     });
 }
 
-/// Part of the side panel that handlles the triangulation computation.
-fn triangulation_computer(
-    ui: &mut Ui,
-    triangulation_data: &mut TriangulationData,
-    app_settings: &mut AppSettings,
-) {
+/// Part of the side panel that handles the triangulation computation.
+fn triangulation_computer(ui: &mut Ui, triangulation_data: &mut TriangulationData) {
     ui.group(|ui| {
         ui.vertical(|ui| {
             // Set the epsilon parameter
@@ -241,8 +233,6 @@ fn triangulation_computer(
             // Handle triangulation button click
             ui.add_enabled_ui(!triangulation_data.vertices.is_empty(), |ui| {
                 if ui.button("Triangulate").clicked() {
-                    app_settings.sidebar_enabled = false;
-
                     let eps = if triangulation_data.epsilon > 0.0 {
                         Some(triangulation_data.epsilon)
                     } else {
@@ -268,8 +258,6 @@ fn triangulation_computer(
 
                     triangulation_data.metrics.sound =
                         triangulation_data.triangulation.is_sound().unwrap();
-
-                    app_settings.sidebar_enabled = true;
                 }
             });
         })

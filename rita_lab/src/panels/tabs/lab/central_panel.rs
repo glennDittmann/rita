@@ -27,20 +27,12 @@ pub fn show(
                 draw_triangles(triangulation_data, plot_ui);
             }
 
-            if triangulation_data.grid_sampler.is_some() {
-                draw_grid(
-                    triangulation_data.grid_sampler.as_ref().unwrap(),
-                    plot_ui,
-                    TRI_GREEN,
-                );
+            if let Some(grid_sampler) = &triangulation_data.grid_sampler {
+                draw_grid(grid_sampler, plot_ui, TRI_GREEN);
             }
 
-            if triangulation_data.scaled_grid_sampler.is_some() {
-                draw_grid(
-                    triangulation_data.scaled_grid_sampler.as_ref().unwrap(),
-                    plot_ui,
-                    ORANGE,
-                );
+            if let Some(scaled_grid_sampler) = &triangulation_data.scaled_grid_sampler {
+                draw_grid(scaled_grid_sampler, plot_ui, TRI_GREEN);
             }
 
             plot_ui.points(vertex_markers(plot_settings, &triangulation_data.vertices));
@@ -68,8 +60,8 @@ fn draw_triangles(triangulation_data: &mut TriangulationData, plot_ui: &mut Plot
         plot_ui.polygon(
             // todo use borrowed series
             Polygon::new("", vec![a, b, c])
-                .stroke(Stroke::new(1.0, TRI_GREEN))
-                .width(1.0),
+                .stroke(Stroke::new(1.0_f32, TRI_GREEN))
+                .width(1.0_f32),
         );
     }
 }
@@ -138,8 +130,8 @@ fn draw_grid(grid_sampler: &VertexClusterer2, plot_ui: &mut PlotUi, color: Color
 
             plot_ui.polygon(
                 Polygon::new("", vec![bottom_left, bottom_right, top_right, top_left])
-                    .stroke(Stroke::new(1.0, color))
-                    .width(1.0),
+                    .stroke(Stroke::new(1.0_f32, color))
+                    .width(1.0_f32),
             );
         }
     }
