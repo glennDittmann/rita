@@ -163,22 +163,9 @@ impl Triangulation {
 
     /// Create a new `Triangulation` with a pre-allocated capacity for vertices
     pub fn new_with_vert_capacity(epsilon: Option<f64>, capacity: usize) -> Self {
-        Self {
-            tds: TriDataStructure::new(),
-            vertices: Vec::with_capacity(capacity),
-            weights: None,
-            #[cfg(feature = "timing")]
-            time_flipping: 0,
-            #[cfg(feature = "timing")]
-            time_inserting: 0,
-            #[cfg(feature = "timing")]
-            time_walking: 0,
-            last_inserted_triangle: None,
-            epsilon,
-            used_vertices: Vec::new(),
-            ignored_vertices: Vec::new(),
-            redundant_vertices: Vec::new(),
-        }
+        let mut triangulation = Self::new(epsilon);
+        triangulation.vertices = Vec::with_capacity(capacity);
+        triangulation
     }
 
     pub(crate) const fn weighted(&self) -> bool {
@@ -191,7 +178,7 @@ impl Triangulation {
     #[must_use]
     fn choose_hedge<'a>(
         &self,
-        v_hedges: &Vec<HedgeIterator<'a>>,
+        v_hedges: &[HedgeIterator<'a>],
         v: &[f64; 2],
     ) -> Option<HedgeIterator<'a>> {
         for hedge in v_hedges {

@@ -139,20 +139,9 @@ impl Tetrahedralization {
 
     /// Create a new `Tetrahedralization` with a pre-allocated capacity for vertices
     pub fn new_with_vert_capacity(epsilon: Option<f64>, capacity: usize) -> Self {
-        Self {
-            epsilon,
-            tds: TetDataStructure::new(),
-            vertices: Vec::with_capacity(capacity),
-            weights: None,
-            #[cfg(feature = "timing")]
-            time_hilbert: 0,
-            #[cfg(feature = "timing")]
-            time_walking: 0,
-            #[cfg(feature = "timing")]
-            time_inserting: 0,
-            used_vertices: Vec::new(),
-            ignored_vertices: Vec::new(),
-        }
+        let mut tetrahedralization = Self::new(epsilon);
+        tetrahedralization.vertices = Vec::with_capacity(capacity);
+        tetrahedralization
     }
 
     pub(crate) const fn weighted(&self) -> bool {
