@@ -7,26 +7,18 @@ pub struct TetIterator<'a> {
 }
 
 impl<'a> TetIterator<'a> {
+    pub const fn new(tds: &'a TetDataStructure, tet_idx: TetIteratorIdx) -> Self {
+        Self { tds, tet_idx }
+    }
+
     pub const fn half_triangles(&self) -> [HalfTriIterator<'a>; 4] {
         let idx_first = self.idx() << 2;
 
         [
-            HalfTriIterator {
-                tds: self.tds,
-                half_tri_idx: idx_first,
-            },
-            HalfTriIterator {
-                tds: self.tds,
-                half_tri_idx: idx_first + 1,
-            },
-            HalfTriIterator {
-                tds: self.tds,
-                half_tri_idx: idx_first + 2,
-            },
-            HalfTriIterator {
-                tds: self.tds,
-                half_tri_idx: idx_first + 3,
-            },
+            HalfTriIterator::new(self.tds, idx_first),
+            HalfTriIterator::new(self.tds, idx_first + 1),
+            HalfTriIterator::new(self.tds, idx_first + 2),
+            HalfTriIterator::new(self.tds, idx_first + 3),
         ]
     }
 

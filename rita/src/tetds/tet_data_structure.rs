@@ -104,27 +104,10 @@ impl TetDataStructure {
         }
     }
 
-    const fn hedge(&self, ind_halftriangle: usize, ind_halfedge: usize) -> HedgeIterator<'_> {
-        // TODO: remove this, this is just HedgeIterator::new(self, ind_halftriangle, ind_halfedge)
-        HedgeIterator {
-            tds: self,
-            half_tri_idx: ind_halftriangle,
-            hedge_idx: ind_halfedge,
-        }
-    }
-
-    const fn half_triangle(&self, ind_halftriangle: usize) -> HalfTriIterator<'_> {
-        // TODO: remove this, this is just HalfTriIterator::new(self, ind_halftriangle, ind_halfedge)
-        HalfTriIterator {
-            tds: self,
-            half_tri_idx: ind_halftriangle,
-        }
-    }
-
     /// Gets halfedge iterator from index
     pub fn get_half_tri(&self, half_tri_idx: usize) -> HowResult<HalfTriIterator<'_>> {
         if half_tri_idx < self.half_tri_opposite.len() {
-            HowOk(self.half_triangle(half_tri_idx))
+            HowOk(HalfTriIterator::new(self, half_tri_idx))
         } else {
             Err(anyhow::Error::msg(
                 "Halftriangle value not in tetrahedron data structure",
@@ -151,18 +134,10 @@ impl TetDataStructure {
         num_casual_tets
     }
 
-    const fn tet(&self, ind_tetrahedron: usize) -> TetIterator<'_> {
-        // TODO: remove this, this is just TetIterator::new(self, ind_halftriangle, ind_halfedge)
-        TetIterator {
-            tds: self,
-            tet_idx: ind_tetrahedron,
-        }
-    }
-
     /// Gets tetrahedron iterator from index
     pub fn get_tet(&self, ind_tetrahedron: usize) -> HowResult<TetIterator<'_>> {
         if ind_tetrahedron < self.num_tets {
-            HowOk(self.tet(ind_tetrahedron))
+            HowOk(TetIterator::new(self, ind_tetrahedron))
         } else {
             Err(anyhow::Error::msg("Tetrahedron value not in simplicial"))
         }
@@ -205,7 +180,7 @@ impl TetDataStructure {
 
                 for (k, tri_sub_idx) in tri_sub_idxs.iter().enumerate() {
                     if *tri_sub_idx == sub_ind_v0 && tri_sub_idxs[(k + 1) % 3] == sub_ind_v1 {
-                        hedges.push(self.hedge(first_node + j, k));
+                        hedges.push(HedgeIterator::new(self, first_node + j, k));
                         break;
                     }
                 }
@@ -255,11 +230,11 @@ impl TetDataStructure {
                         && tri_sub_idxs[(k + 1) % 3] == sub_ind_v1
                         && tri_sub_idxs[(k + 2) % 3] == sub_ind_v2
                     {
-                        return Some(self.half_triangle(first_node + j));
+                        return Some(HalfTriIterator::new(self, first_node + j));
                     }
                 }
 
-                return Some(self.half_triangle(first_node + j).opposite());
+                return Some(HalfTriIterator::new(self, first_node + j).opposite());
             }
         }
 
@@ -275,7 +250,7 @@ impl TetDataStructure {
 
             for j in 0..NODES_PER_TET {
                 if self.tet_nodes[first_node + j] == *node {
-                    tets.push(self.tet(i));
+                    tets.push(TetIterator::new(self, i));
                     break;
                 }
             }
@@ -347,7 +322,7 @@ impl TetDataStructure {
 
         // 1 - find boundary triangle
         let ind_tri_first = if let Some(&ind_tetra_keep) = self.tets_to_keep.last() {
-            let tetra = self.tet(ind_tetra_keep);
+            let tetra = TetIterator::new(self, ind_tetra_keep);
             let tris = tetra.half_triangles();
             if tris[0].opposite().tet().should_del() {
                 tris[0].idx()
@@ -369,10 +344,7 @@ impl TetDataStructure {
         let mut vec_nei: Vec<[Option<usize>; 3]> = vec![[None; 3]];
         let mut ind_cur = 0;
         loop {
-            let cur_tri = HalfTriIterator {
-                tds: self,
-                half_tri_idx: vec_tri[ind_cur],
-            };
+            let cur_tri = HalfTriIterator::new(self, vec_tri[ind_cur]);
 
             let hedges = cur_tri.hedges();
 
@@ -414,10 +386,7 @@ impl TetDataStructure {
         let mut added_tets = Vec::with_capacity(vec_tri.len());
         // 3 - create tetrahedra
         for i in &vec_tri {
-            let cur_tri = HalfTriIterator {
-                tds: self,
-                half_tri_idx: *i,
-            };
+            let cur_tri = HalfTriIterator::new(self, *i);
 
             let [nod0, nod1, nod2] = cur_tri.nodes();
 
@@ -546,7 +515,7 @@ impl TetDataStructure {
             let opp_tri_idx2 = self.half_tri_opposite[self.half_tri_opposite.len() - 2];
             let opp_tri_idx3 = self.half_tri_opposite[self.half_tri_opposite.len() - 1];
 
-            let [node0, node1, node2, node3] = self.tet(self.num_tets - 1).nodes();
+            let [node0, node1, node2, node3] = TetIterator::new(self, self.num_tets - 1).nodes();
 
             let (tri_idx0, tri_idx1, tri_idx2, tri_idx3) =
                 self.replace_tet(tet_idx, node0, node1, node2, node3);
@@ -622,22 +591,10 @@ impl TetDataStructure {
         self.half_tri_opposite.push(t012); // t021
 
         HowOk([
-            TetIterator {
-                tds: self,
-                tet_idx: first_tetra,
-            },
-            TetIterator {
-                tds: self,
-                tet_idx: first_tetra + 1,
-            },
-            TetIterator {
-                tds: self,
-                tet_idx: first_tetra + 2,
-            },
-            TetIterator {
-                tds: self,
-                tet_idx: first_tetra + 3,
-            },
+            TetIterator::new(self, first_tetra),
+            TetIterator::new(self, first_tetra + 1),
+            TetIterator::new(self, first_tetra + 2),
+            TetIterator::new(self, first_tetra + 3),
         ])
     }
 
@@ -665,7 +622,7 @@ impl TetDataStructure {
 impl core::fmt::Display for TetDataStructure {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         for idx in 0..self.num_tets {
-            write!(f, "Tet {}: {}", idx, self.tet(idx))?;
+            write!(f, "Tet {}: {}", idx, TetIterator::new(self, idx))?;
         }
 
         write!(f, "TetDataStructure")
