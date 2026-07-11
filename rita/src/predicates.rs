@@ -40,44 +40,26 @@ mod imp {
 
     #[inline]
     pub fn orient_2d(a: &Vertex2, b: &Vertex2, c: &Vertex2) -> f64 {
-        use robust::{Coord, orient2d};
-
-        let s = sign_f64(orient2d(
-            Coord { x: a[0], y: a[1] },
-            Coord { x: b[0], y: b[1] },
-            Coord { x: c[0], y: c[1] },
-        ));
-
-        sign_f64(s)
+        let r = gp::orient_2d(a, b, c);
+        if r > 0i16 {
+            1.0
+        } else if r < 0i16 {
+            -1.0
+        } else {
+            0.0
+        }
     }
 
     #[inline]
     pub fn orient_3d(a: &Vertex3, b: &Vertex3, c: &Vertex3, d: &Vertex3) -> f64 {
-        use robust::{Coord3D, orient3d};
-        let s = sign_f64(orient3d(
-            Coord3D {
-                x: a[0],
-                y: a[1],
-                z: a[2],
-            },
-            Coord3D {
-                x: b[0],
-                y: b[1],
-                z: b[2],
-            },
-            Coord3D {
-                x: c[0],
-                y: c[1],
-                z: c[2],
-            },
-            Coord3D {
-                x: d[0],
-                y: d[1],
-                z: d[2],
-            },
-        ));
-
-        sign_f64(-s)
+        let r = gp::orient_3d(a, b, c, d);
+        if r > 0i16 {
+            1.0
+        } else if r < 0i16 {
+            -1.0
+        } else {
+            0.0
+        }
     }
 
     #[inline]
@@ -88,37 +70,14 @@ mod imp {
         d: &Vertex3,
         p: &Vertex3,
     ) -> f64 {
-        use robust::{Coord3D, insphere};
-
-        let s = sign_f64(insphere(
-            Coord3D {
-                x: a[0],
-                y: a[1],
-                z: a[2],
-            },
-            Coord3D {
-                x: b[0],
-                y: b[1],
-                z: b[2],
-            },
-            Coord3D {
-                x: c[0],
-                y: c[1],
-                z: c[2],
-            },
-            Coord3D {
-                x: d[0],
-                y: d[1],
-                z: d[2],
-            },
-            Coord3D {
-                x: p[0],
-                y: p[1],
-                z: p[2],
-            },
-        ));
-
-        sign_f64(s)
+        let r = gp::in_sphere_3d_SOS(a, b, c, d, p);
+        if r > 0i16 {
+            1.0
+        } else if r < 0i16 {
+            -1.0
+        } else {
+            0.0
+        }
     }
 
     #[inline]
@@ -133,32 +92,14 @@ mod imp {
         h_c: f64,
         h_p: f64,
     ) -> f64 {
-        use robust::{Coord3D, orient3d};
-
-        let s = sign_f64(orient3d(
-            Coord3D {
-                x: a[0],
-                y: a[1],
-                z: h_a,
-            },
-            Coord3D {
-                x: b[0],
-                y: b[1],
-                z: h_b,
-            },
-            Coord3D {
-                x: c[0],
-                y: c[1],
-                z: h_c,
-            },
-            Coord3D {
-                x: p[0],
-                y: p[1],
-                z: h_p,
-            },
-        ));
-
-        sign_f64(s)
+        let r = gp::orient_2dlifted_SOS(a, b, c, p, h_a, h_b, h_c, h_p);
+        if r > 0i16 {
+            1.0
+        } else if r < 0i16 {
+            -1.0
+        } else {
+            0.0
+        }
     }
 
     #[inline]
@@ -176,7 +117,6 @@ mod imp {
         h_p: f64,
     ) -> f64 {
         let r = gp::orient_3dlifted_SOS(a, b, c, d, p, h_a, h_b, h_c, h_d, h_p);
-
         if r > 0i16 {
             1.0
         } else if r < 0i16 {
