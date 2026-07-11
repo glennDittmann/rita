@@ -13,23 +13,15 @@ pub struct HalfTriIterator<'a> {
 }
 
 impl<'a> HalfTriIterator<'a> {
+    pub const fn new(tds: &'a TetDataStructure, half_tri_idx: usize) -> Self {
+        Self { tds, half_tri_idx }
+    }
+
     pub const fn hedges(&self) -> [HedgeIterator<'a>; 3] {
         [
-            HedgeIterator {
-                tds: self.tds,
-                hedge_idx: 0,
-                half_tri_idx: self.half_tri_idx,
-            },
-            HedgeIterator {
-                tds: self.tds,
-                hedge_idx: 1,
-                half_tri_idx: self.half_tri_idx,
-            },
-            HedgeIterator {
-                tds: self.tds,
-                hedge_idx: 2,
-                half_tri_idx: self.half_tri_idx,
-            },
+            HedgeIterator::new(self.tds, self.half_tri_idx, 0),
+            HedgeIterator::new(self.tds, self.half_tri_idx, 1),
+            HedgeIterator::new(self.tds, self.half_tri_idx, 2),
         ]
     }
 
@@ -77,17 +69,14 @@ impl<'a> HalfTriIterator<'a> {
 
     /// Opposite half triangle on the neighboring tet
     pub fn opposite(&self) -> HalfTriIterator<'a> {
-        HalfTriIterator {
-            tds: self.tds,
-            half_tri_idx: self.tds.half_tri_opposite[self.idx()],
-        }
+        Self::new(self.tds, self.tds.half_tri_opposite[self.idx()])
     }
 
     pub const fn tet(&self) -> TetIterator<'a> {
-        TetIterator {
-            tds: self.tds,
-            tet_idx: self.half_tri_idx >> 2, // this is equivalent to self.half_tri_idx / 4 (rounding down to nearest integer), but faster
-        }
+        TetIterator::new(
+            self.tds,
+            self.half_tri_idx >> 2, // this is equivalent to self.half_tri_idx / 4 (rounding down to nearest integer), but faster
+        )
     }
 }
 

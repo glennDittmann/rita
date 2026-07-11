@@ -67,9 +67,7 @@ pub fn get_example_weights() -> Vec<f64> {
 /// ```
 pub fn read_vertices_from_string(input: &str) -> Vec<Vertex2> {
     let mut reader = csv::Reader::from_reader(input.as_bytes());
-    let vertices = reader.deserialize().map(|record| record.unwrap()).collect();
-
-    vertices
+    reader.deserialize().map(|record| record.unwrap()).collect()
 }
 
 pub fn bbox_2d(vertices: &[Vertex2]) -> (Vertex2, Vertex2) {

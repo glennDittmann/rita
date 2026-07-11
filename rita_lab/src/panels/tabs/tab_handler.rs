@@ -15,7 +15,7 @@ pub fn show(
 ) {
     match open_tab {
         Tab::Lab => {
-            lab::side_panel::show(ctx, triangulation_data, app_settings, file_handler);
+            lab::side_panel::show(ctx, triangulation_data, file_handler);
             lab::central_panel::show(ctx, plot_settings, triangulation_data);
         }
         Tab::Debug => {

@@ -5,6 +5,7 @@ use crate::predicates;
 use alloc::vec::Vec;
 use anyhow::{Ok as HowOk, Result as HowResult};
 
+const HEDGES_PER_TRI: usize = 3;
 const INACTIVE: usize = usize::MAX;
 
 /// A 2D triangulation data structure.
@@ -28,7 +29,7 @@ const INACTIVE: usize = usize::MAX;
 #[derive(Debug)]
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 pub struct TriDataStructure {
-    /// The first node is stored, the last can be obtained via `% 3`
+    /// The first node is stored, the last can be obtained via `% HEDGES_PER_TRI`
     pub(crate) hedge_starting_nodes: Vec<VertexNode>,
     pub(crate) hedge_twins: Vec<HedgeIteratorIdx>,
     #[cfg_attr(feature = "arbitrary", arbitrary(default))]
@@ -45,6 +46,18 @@ impl Default for TriDataStructure {
 }
 
 impl TriDataStructure {
+    const fn hedge_indices(first_hedge_idx: usize) -> (usize, usize, usize) {
+        (first_hedge_idx, first_hedge_idx + 1, first_hedge_idx + 2)
+    }
+
+    const fn tri_first_hedge_idx(tri_idx: usize) -> usize {
+        tri_idx * HEDGES_PER_TRI
+    }
+
+    const fn tri_hedge_indices(tri_idx: usize) -> (usize, usize, usize) {
+        Self::hedge_indices(Self::tri_first_hedge_idx(tri_idx))
+    }
+
     pub const fn new() -> Self {
         Self {
             hedge_starting_nodes: Vec::new(),
@@ -65,7 +78,7 @@ impl TriDataStructure {
 
         self.num_tris += 1;
 
-        (hedge_idx0, hedge_idx0 + 1, hedge_idx0 + 2)
+        Self::hedge_indices(hedge_idx0)
     }
 
     /// Insert an initial triangle into the triangulation.
@@ -123,9 +136,7 @@ impl TriDataStructure {
             return Err(anyhow::Error::msg("Triangle index out of bounds!"));
         }
 
-        let hedge_ab = idx_to_remove * 3;
-        let hedge_bc = hedge_ab + 1;
-        let hedge_ca = hedge_ab + 2;
+        let (hedge_ab, hedge_bc, hedge_ca) = Self::tri_hedge_indices(idx_to_remove);
 
         let a = self.hedge_starting_nodes[hedge_ab];
         let b = self.hedge_starting_nodes[hedge_bc];
@@ -165,16 +176,12 @@ impl TriDataStructure {
     pub fn flip_2_to_2(&mut self, idx: usize) -> HowResult<[TriIterator<'_>; 2]> {
         let hedge_twin_idx = self.hedge_twins[idx];
 
-        let tri1_idx = idx / 3;
-        let tri2_idx = hedge_twin_idx / 3;
+        let tri1_idx = idx / HEDGES_PER_TRI;
+        let tri2_idx = hedge_twin_idx / HEDGES_PER_TRI;
 
-        let hedge01 = tri1_idx * 3;
-        let hedge12 = hedge01 + 1;
-        let hedge20 = hedge01 + 2;
+        let (hedge01, hedge12, hedge20) = Self::tri_hedge_indices(tri1_idx);
 
-        let hedge01_twin = tri2_idx * 3;
-        let hedge12_twin = hedge01_twin + 1;
-        let hedge20_twin = hedge01_twin + 2;
+        let (hedge01_twin, hedge12_twin, hedge20_twin) = Self::tri_hedge_indices(tri2_idx);
 
         // get the correct flip depending on the structure of the triangles
         let (hedge_ab, hedge_bc) = if hedge01 == idx {
@@ -418,12 +425,12 @@ impl TriDataStructure {
         v1: VertexNode,
         v2: VertexNode,
     ) -> (usize, usize, usize) {
-        let idx0 = idx_to_remove * 3;
+        let idx0 = Self::tri_first_hedge_idx(idx_to_remove);
 
         self.hedge_starting_nodes[idx0] = v0;
         self.hedge_starting_nodes[idx0 + 1] = v1;
         self.hedge_starting_nodes[idx0 + 2] = v2;
 
-        (idx0, idx0 + 1, idx0 + 2)
+        Self::hedge_indices(idx0)
     }
 }

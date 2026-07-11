@@ -11,6 +11,14 @@ pub struct HedgeIterator<'a> {
 }
 
 impl<'a> HedgeIterator<'a> {
+    pub const fn new(tds: &'a TetDataStructure, half_tri_idx: usize, hedge_idx: usize) -> Self {
+        Self {
+            tds,
+            half_tri_idx,
+            hedge_idx,
+        }
+    }
+
     pub fn first_node(&self) -> VertexNode {
         // TODO: refactor the first two lines
         let mod4 = self.half_tri_idx % 4;
@@ -77,19 +85,15 @@ impl<'a> HedgeIterator<'a> {
 
         let (neighbor_half_tri_idx, neighbor_hedge_idx) = NEIGHBOR_HALFEDGE[mod4][self.hedge_idx];
 
-        HedgeIterator {
-            tds: self.tds,
-            hedge_idx: neighbor_hedge_idx,
-            half_tri_idx: self.half_tri_idx - mod4 + neighbor_half_tri_idx,
-        }
+        Self::new(
+            self.tds,
+            self.half_tri_idx - mod4 + neighbor_half_tri_idx,
+            neighbor_hedge_idx,
+        )
     }
 
     pub const fn next(&self) -> HedgeIterator<'a> {
-        HedgeIterator {
-            tds: self.tds,
-            hedge_idx: (self.hedge_idx + 1) % 3,
-            half_tri_idx: self.half_tri_idx,
-        }
+        Self::new(self.tds, self.half_tri_idx, (self.hedge_idx + 1) % 3)
     }
 
     pub fn opposite(&self) -> HedgeIterator<'a> {
@@ -107,18 +111,11 @@ impl<'a> HedgeIterator<'a> {
     }
 
     pub const fn prev(&self) -> HedgeIterator<'a> {
-        HedgeIterator {
-            tds: self.tds,
-            hedge_idx: (self.hedge_idx + 2) % 3,
-            half_tri_idx: self.half_tri_idx,
-        }
+        Self::new(self.tds, self.half_tri_idx, (self.hedge_idx + 2) % 3)
     }
 
     pub const fn tri(&self) -> HalfTriIterator<'a> {
-        HalfTriIterator {
-            tds: self.tds,
-            half_tri_idx: self.half_tri_idx,
-        }
+        HalfTriIterator::new(self.tds, self.half_tri_idx)
     }
 }
 
