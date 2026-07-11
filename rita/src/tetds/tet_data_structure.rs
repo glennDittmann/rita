@@ -6,6 +6,10 @@ use crate::VertexNode;
 use alloc::{vec, vec::Vec};
 use anyhow::{Ok as HowOk, Result as HowResult};
 
+const NODES_PER_TET: usize = 4;
+const HALF_TRIS_PER_TET: usize = NODES_PER_TET;
+const MISSING_SUBINDEX: usize = NODES_PER_TET;
+
 // For each tri idx within a tet, associate list of vertex idx triples, i.e. the face indices
 /// For each triangle index within tetrahedron, associate list of vertices within tetrahedron
 pub(crate) const TRIANGLE_SUBINDICES: [[usize; 3]; 4] =
@@ -73,6 +77,19 @@ impl Default for TetDataStructure {
 }
 
 impl TetDataStructure {
+    const fn tet_first_idx(tet_idx: usize) -> usize {
+        tet_idx * NODES_PER_TET
+    }
+
+    const fn tet_indices(tet_idx: usize) -> (usize, usize, usize, usize) {
+        let first_idx = Self::tet_first_idx(tet_idx);
+        (first_idx, first_idx + 1, first_idx + 2, first_idx + 3)
+    }
+
+    const fn tet_idx_from_half_tri(half_tri_idx: usize) -> usize {
+        half_tri_idx / HALF_TRIS_PER_TET
+    }
+
     /// Simplicial structure initialisation
     pub const fn new() -> Self {
         Self {
@@ -165,11 +182,11 @@ impl TetDataStructure {
         let mut hedges = Vec::new();
 
         for i in 0..self.num_tets() {
-            let first_node = i << 2;
-            let mut sub_ind_v0 = 4;
-            let mut sub_ind_v1 = 4;
+            let first_node = Self::tet_first_idx(i);
+            let mut sub_ind_v0 = MISSING_SUBINDEX;
+            let mut sub_ind_v1 = MISSING_SUBINDEX;
 
-            for j in 0..4 {
+            for j in 0..NODES_PER_TET {
                 if self.tet_nodes[first_node + j] == *node0 {
                     sub_ind_v0 = j;
                 } else if self.tet_nodes[first_node + j] == *node1 {
@@ -177,7 +194,7 @@ impl TetDataStructure {
                 }
             }
 
-            if sub_ind_v0 == 4 || sub_ind_v1 == 4 {
+            if sub_ind_v0 == MISSING_SUBINDEX || sub_ind_v1 == MISSING_SUBINDEX {
                 continue;
             }
 
@@ -206,12 +223,12 @@ impl TetDataStructure {
         node3: &VertexNode,
     ) -> Option<HalfTriIterator<'_>> {
         for i in 0..self.num_tets {
-            let first_node = i << 2;
-            let mut sub_ind_v0 = 4;
-            let mut sub_ind_v1 = 4;
-            let mut sub_ind_v2 = 4;
+            let first_node = Self::tet_first_idx(i);
+            let mut sub_ind_v0 = MISSING_SUBINDEX;
+            let mut sub_ind_v1 = MISSING_SUBINDEX;
+            let mut sub_ind_v2 = MISSING_SUBINDEX;
 
-            for j in 0..4 {
+            for j in 0..NODES_PER_TET {
                 if self.tet_nodes[first_node + j] == *node1 {
                     sub_ind_v0 = j;
                 } else if self.tet_nodes[first_node + j] == *node2 {
@@ -221,7 +238,10 @@ impl TetDataStructure {
                 }
             }
 
-            if sub_ind_v0 == 4 || sub_ind_v1 == 4 || sub_ind_v2 == 4 {
+            if sub_ind_v0 == MISSING_SUBINDEX
+                || sub_ind_v1 == MISSING_SUBINDEX
+                || sub_ind_v2 == MISSING_SUBINDEX
+            {
                 continue;
             }
 
@@ -251,9 +271,9 @@ impl TetDataStructure {
         let mut tets = Vec::new();
 
         for i in 0..self.num_tets {
-            let first_node = i << 2;
+            let first_node = Self::tet_first_idx(i);
 
-            for j in 0..4 {
+            for j in 0..NODES_PER_TET {
                 if self.tet_nodes[first_node + j] == *node {
                     tets.push(self.tet(i));
                     break;
@@ -289,20 +309,21 @@ impl TetDataStructure {
 
     /// Sets tetrahedron to remove
     pub fn bw_rem_tet(&mut self, tet_idx: usize) {
-        let tri0 = tet_idx << 2;
-        let tri1 = tri0 + 1;
-        let tri2 = tri0 + 2;
-        let tri3 = tri0 + 3;
+        let (tri0, tri1, tri2, tri3) = Self::tet_indices(tet_idx);
 
         let opp_tri0 = self.half_tri_opposite[tri0];
         let opp_tri1 = self.half_tri_opposite[tri1];
         let opp_tri2 = self.half_tri_opposite[tri2];
         let opp_tri3 = self.half_tri_opposite[tri3];
 
-        self.tets_to_check.push(opp_tri0 >> 2);
-        self.tets_to_check.push(opp_tri1 >> 2);
-        self.tets_to_check.push(opp_tri2 >> 2);
-        self.tets_to_check.push(opp_tri3 >> 2);
+        self.tets_to_check
+            .push(Self::tet_idx_from_half_tri(opp_tri0));
+        self.tets_to_check
+            .push(Self::tet_idx_from_half_tri(opp_tri1));
+        self.tets_to_check
+            .push(Self::tet_idx_from_half_tri(opp_tri2));
+        self.tets_to_check
+            .push(Self::tet_idx_from_half_tri(opp_tri3));
 
         self.should_del_tet[tet_idx] = true;
         self.tets_to_del.push(tet_idx);
@@ -415,12 +436,7 @@ impl TetDataStructure {
 
         // 4 - create links
         for i in 0..vec_tri.len() {
-            let (tri0, tri1, tri2, tri3) = (
-                added_tets[i] * 4,
-                added_tets[i] * 4 + 1,
-                added_tets[i] * 4 + 2,
-                added_tets[i] * 4 + 3,
-            );
+            let (tri0, tri1, tri2, tri3) = Self::tet_indices(added_tets[i]);
 
             let ind_tri_nei = vec_tri[i];
 
@@ -433,25 +449,25 @@ impl TetDataStructure {
             let ind_tet_nei2 = added_tets[ind_nei2];
 
             let ind_tri0_nei = if vec_nei[ind_nei0][0] == Some(i) {
-                ind_tet_nei0 * 4 + 1
+                Self::tet_first_idx(ind_tet_nei0) + 1
             } else if vec_nei[ind_nei0][1] == Some(i) {
-                ind_tet_nei0 * 4
+                Self::tet_first_idx(ind_tet_nei0)
             } else {
-                ind_tet_nei0 * 4 + 2
+                Self::tet_first_idx(ind_tet_nei0) + 2
             };
             let ind_tri1_nei = if vec_nei[ind_nei1][0] == Some(i) {
-                ind_tet_nei1 * 4 + 1
+                Self::tet_first_idx(ind_tet_nei1) + 1
             } else if vec_nei[ind_nei1][1] == Some(i) {
-                ind_tet_nei1 * 4
+                Self::tet_first_idx(ind_tet_nei1)
             } else {
-                ind_tet_nei1 * 4 + 2
+                Self::tet_first_idx(ind_tet_nei1) + 2
             };
             let ind_tri2_nei = if vec_nei[ind_nei2][0] == Some(i) {
-                ind_tet_nei2 * 4 + 1
+                Self::tet_first_idx(ind_tet_nei2) + 1
             } else if vec_nei[ind_nei2][1] == Some(i) {
-                ind_tet_nei2 * 4
+                Self::tet_first_idx(ind_tet_nei2)
             } else {
-                ind_tet_nei2 * 4 + 2
+                Self::tet_first_idx(ind_tet_nei2) + 2
             };
 
             self.half_tri_opposite[tri0] = ind_tri0_nei;
@@ -510,7 +526,7 @@ impl TetDataStructure {
         nod3: VertexNode,
         nod4: VertexNode,
     ) -> (usize, usize, usize, usize) {
-        let idx0 = tet_idx * 4;
+        let idx0 = Self::tet_first_idx(tet_idx);
 
         self.tet_nodes[idx0] = nod1;
         self.tet_nodes[idx0 + 1] = nod2;
@@ -520,7 +536,7 @@ impl TetDataStructure {
         self.should_del_tet[tet_idx] = false;
         self.should_keep_tet[tet_idx] = false;
 
-        (idx0, idx0 + 1, idx0 + 2, idx0 + 3)
+        Self::tet_indices(tet_idx)
     }
 
     fn mov_end_tet(&mut self, tet_idx: usize) -> HowResult<()> {
