@@ -117,7 +117,7 @@ fn test_eps_weighted_delaunay_3d() {
 
 #[test]
 #[ignore]
-// only run this test isolated, as test concurenncy can mess up par_iter
+// only run this test isolated, as test concurrency can mess up par_iter
 fn test_parallel_regularity_3d() {
     let n_vertices = 2000;
     let vertices = sample_vertices_3d(n_vertices, None);
