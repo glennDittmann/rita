@@ -1,4 +1,5 @@
 use super::*;
+use crate::triangulation;
 use rita_test_utils::sample_vertices_2d;
 #[cfg(not(feature = "wasm"))]
 use rita_test_utils::sample_weights;

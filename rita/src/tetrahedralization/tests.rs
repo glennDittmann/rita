@@ -1,4 +1,5 @@
 use super::*;
+use crate::tetrahedralization;
 use rita_test_utils::{sample_vertices_3d, sample_weights};
 
 fn verify_tetrahedralization(tetrahedralization: &Tetrahedralization) {
